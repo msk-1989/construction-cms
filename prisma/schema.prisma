@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("MEMBER")
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects      ProjectMember[]
+  assignedTasks Task[]          @relation("TaskAssignee")
+  createdProjects Project[]     @relation("ProjectCreator")
+  createdTasks   Task[]         @relation("TaskCreator")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String?
+  status      String   @default("PLANNING")
+  progress    Float    @default(0)
+  startDate   String?
+  endDate     String?
+  budget      Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdById String
+  createdBy   User            @relation("ProjectCreator", fields: [createdById], references: [id])
+  members     ProjectMember[]
+  tasks       Task[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String
+  joinedAt  DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@unique([userId, projectId])
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("PENDING")
+  priority    String   @default("MEDIUM")
+  progress    Float    @default(0)
+  dueDate     String?
+  completedAt String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projectId   String
+  project     Project @relation(fields: [projectId], references: [id])
+  assigneeId  String?
+  assignee    User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdById String
+  createdBy   User    @relation("TaskCreator", fields: [createdById], references: [id])
+}
