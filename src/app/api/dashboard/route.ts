@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-export async function POST(request: NextRequest) {
+export async function GET() {
   try {
-    const { userId } = await request.json()
     const now = new Date().toISOString().split('T')[0]
 
     const [

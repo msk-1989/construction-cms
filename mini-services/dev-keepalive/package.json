@@ -1,0 +1,7 @@
+{
+  "name": "cms-dev-proxy",
+  "private": true,
+  "scripts": {
+    "dev": "cd /home/z/my-project && exec bun run dev"
+  }
+}

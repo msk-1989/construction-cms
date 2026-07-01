@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 })
     }
     const { password: _, ...safeUser } = user
-    const response = NextResponse.json({ success: true, data: safeUser })
+    const response = NextResponse.json({ success: true, user: safeUser })
     response.cookies.set('userId', user.id, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7 })
     return response
   } catch (e: unknown) {
