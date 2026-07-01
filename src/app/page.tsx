@@ -28,7 +28,7 @@ import { StorePanel } from '@/components/cms/StorePanel'
 import { AIChatPanel } from '@/components/cms/AIChatPanel'
 import { Toaster } from '@/components/ui/sonner'
 import { AnimatePresence, motion } from 'framer-motion'
-import { HardHat } from 'lucide-react'
+import { HardHat, Phone } from 'lucide-react'
 import { OnboardingTour } from '@/components/cms/OnboardingTour'
 import type { ViewType } from '@/types/cms'
 
@@ -146,15 +146,20 @@ export default function Home() {
             </AnimatePresence>
           </main>
           <footer className="border-t bg-card px-6 py-3 mt-auto">
-            <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
+            <div className="flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground sm:flex-row sm:gap-3">
               <span className="flex items-center gap-1.5 font-medium text-foreground/70">
                 <HardHat className="h-3.5 w-3.5" />
-                CBOS
+                CBOS Construction ERP
               </span>
-              <span className="h-3 w-px bg-border" />
-              <span>Construction Business Operating System</span>
-              <span className="h-3 w-px bg-border" />
-              <span>&copy; {new Date().getFullYear()}</span>
+              <span className="hidden sm:block h-3 w-px bg-border" />
+              <span>&copy; 2026 CBOS Construction ERP. All Rights Reserved. | Version 1.0.0</span>
+              <span className="hidden sm:block h-3 w-px bg-border" />
+              <span>Developed, Managed &amp; Maintained by <span className="font-medium text-foreground/70">MultiNex Multi Solution's LLP</span></span>
+              <span className="hidden sm:block h-3 w-px bg-border" />
+              <span className="flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                Contact: +91 98903 72241
+              </span>
             </div>
           </footer>
         </div>
