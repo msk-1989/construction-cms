@@ -1,0 +1,536 @@
+     1→'use client'
+     2→
+     3→import { useState, useEffect, useCallback } from 'react'
+     4→import { motion } from 'framer-motion'
+     5→import {
+     6→  Plus, Search, LayoutGrid, List, MoreHorizontal, Pencil, Trash2, Eye, FolderKanban,
+     7→  Users as UsersIcon, DollarSign, CalendarDays, Loader2
+     8→} from 'lucide-react'
+     9→import { cn } from '@/lib/utils'
+    10→import { Card, CardContent } from '@/components/ui/card'
+    11→import { Button } from '@/components/ui/button'
+    12→import { Badge } from '@/components/ui/badge'
+    13→import { Input } from '@/components/ui/input'
+    14→import { Label } from '@/components/ui/label'
+    15→import { Progress } from '@/components/ui/progress'
+    16→import { Skeleton } from '@/components/ui/skeleton'
+    17→import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+    18→import { Separator } from '@/components/ui/separator'
+    19→import { ScrollArea } from '@/components/ui/scroll-area'
+    20→import {
+    21→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
+    22→} from '@/components/ui/dialog'
+    23→import {
+    24→  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
+    25→} from '@/components/ui/dropdown-menu'
+    26→import {
+    27→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+    28→} from '@/components/ui/select'
+    29→import { Textarea } from '@/components/ui/textarea'
+    30→import { useAppStore } from '@/store/useAppStore'
+    31→import { usePermissions } from '@/hooks/usePermissions'
+    32→import { toast } from 'sonner'
+    33→import type { Project, ProjectStatus } from '@/types/cms'
+    34→
+    35→const statusColor: Record<string, string> = {
+    36→  ACTIVE: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+    37→  PLANNING: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800',
+    38→  ON_HOLD: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+    39→  COMPLETED: 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400 border-gray-200 dark:border-gray-700',
+    40→  CANCELLED: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800',
+    41→}
+    42→
+    43→type StatusFilter = 'ALL' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED'
+    44→type ViewMode = 'grid' | 'list'
+    45→
+    46→interface ProjectFormData {
+    47→  name: string
+    48→  description: string
+    49→  status: string
+    50→  startDate: string
+    51→  endDate: string
+    52→  budget: string
+    53→  projectType: string
+    54→  contractType: string
+    55→  siteAddress: string
+    56→  siteContact: string
+    57→  siteEmail: string
+    58→  sitePhone: string
+    59→  totalWorkforce: string
+    60→  dailyLaborCount: string
+    61→}
+    62→
+    63→const emptyForm: ProjectFormData = {
+    64→  name: '', description: '', status: 'PLANNING', startDate: '', endDate: '',
+    65→  budget: '', projectType: 'COMMERCIAL', contractType: 'LUMP_SUM',
+    66→  siteAddress: '', siteContact: '', siteEmail: '', sitePhone: '',
+    67→  totalWorkforce: '', dailyLaborCount: '',
+    68→}
+    69→
+    70→export function ProjectsView() {
+    71→  const [projects, setProjects] = useState<Project[]>([])
+    72→  const [loading, setLoading] = useState(true)
+    73→  const [search, setSearch] = useState('')
+    74→  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
+    75→  const [viewMode, setViewMode] = useState<ViewMode>('grid')
+    76→  const [dialogOpen, setDialogOpen] = useState(false)
+    77→  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    78→  const [editingProject, setEditingProject] = useState<Project | null>(null)
+    79→  const [deletingProject, setDeletingProject] = useState<Project | null>(null)
+    80→  const [form, setForm] = useState<ProjectFormData>(emptyForm)
+    81→  const [saving, setSaving] = useState(false)
+    82→  const [deleting, setDeleting] = useState(false)
+    83→
+    84→  const setCurrentView = useAppStore((s) => s.setCurrentView)
+    85→  const setSelectedProjectId = useAppStore((s) => s.setSelectedProjectId)
+    86→  const { can } = usePermissions()
+    87→
+    88→  const fetchProjects = useCallback(async () => {
+    89→    try {
+    90→      setLoading(true)
+    91→      const params = new URLSearchParams()
+    92→      if (search) params.set('search', search)
+    93→      if (statusFilter !== 'ALL') params.set('status', statusFilter)
+    94→      const res = await globalThis.fetch(`/api/projects?${params.toString()}`)
+    95→      if (res.ok) {
+    96→        const data = await res.json()
+    97→        setProjects(Array.isArray(data) ? data : data.projects || [])
+    98→      }
+    99→    } catch {
+   100→      toast.error('Failed to load projects')
+   101→    } finally {
+   102→      setLoading(false)
+   103→    }
+   104→  }, [search, statusFilter])
+   105→
+   106→  useEffect(() => { fetchProjects() }, [fetchProjects])
+   107→
+   108→  const openCreate = () => {
+   109→    setEditingProject(null)
+   110→    setForm(emptyForm)
+   111→    setDialogOpen(true)
+   112→  }
+   113→
+   114→  const openEdit = (project: Project) => {
+   115→    setEditingProject(project)
+   116→    setForm({
+   117→      name: project.name,
+   118→      description: project.description || '',
+   119→      status: project.status,
+   120→      startDate: project.startDate ? project.startDate.split('T')[0] : '',
+   121→      endDate: project.endDate ? project.endDate.split('T')[0] : '',
+   122→      budget: project.budget ? String(project.budget) : '',
+   123→      projectType: project.projectType || 'COMMERCIAL',
+   124→      contractType: project.contractType || 'LUMP_SUM',
+   125→      siteAddress: project.siteAddress || '',
+   126→      siteContact: project.siteContact || '',
+   127→      siteEmail: project.siteEmail || '',
+   128→      sitePhone: project.sitePhone || '',
+   129→      totalWorkforce: project.totalWorkforce ? String(project.totalWorkforce) : '',
+   130→      dailyLaborCount: project.dailyLaborCount ? String(project.dailyLaborCount) : '',
+   131→    })
+   132→    setDialogOpen(true)
+   133→  }
+   134→
+   135→  const openDelete = (project: Project) => {
+   136→    setDeletingProject(project)
+   137→    setDeleteDialogOpen(true)
+   138→  }
+   139→
+   140→  const handleSave = async () => {
+   141→    if (!form.name.trim()) { toast.error('Project name is required'); return }
+   142→    setSaving(true)
+   143→    try {
+   144→      const body = {
+   145→        ...form,
+   146→        budget: form.budget ? Number(form.budget) : null,
+   147→        totalWorkforce: form.totalWorkforce ? Number(form.totalWorkforce) : null,
+   148→        dailyLaborCount: form.dailyLaborCount ? Number(form.dailyLaborCount) : null,
+   149→        startDate: form.startDate || null,
+   150→        endDate: form.endDate || null,
+   151→      }
+   152→      const url = editingProject ? `/api/projects/${editingProject.id}` : '/api/projects'
+   153→      const method = editingProject ? 'PUT' : 'POST'
+   154→      const res = await globalThis.fetch(url, {
+   155→        method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+   156→      })
+   157→      if (!res.ok) {
+   158→        const data = await res.json()
+   159→        toast.error(data.error || 'Failed to save project')
+   160→        return
+   161→      }
+   162→      toast.success(editingProject ? 'Project updated' : 'Project created')
+   163→      setDialogOpen(false)
+   164→      fetchProjects()
+   165→    } catch {
+   166→      toast.error('Network error')
+   167→    } finally {
+   168→      setSaving(false)
+   169→    }
+   170→  }
+   171→
+   172→  const handleDelete = async () => {
+   173→    if (!deletingProject) return
+   174→    setDeleting(true)
+   175→    try {
+   176→      const res = await globalThis.fetch(`/api/projects/${deletingProject.id}`, { method: 'DELETE' })
+   177→      if (!res.ok) { toast.error('Failed to delete project'); return }
+   178→      toast.success('Project deleted')
+   179→      setDeleteDialogOpen(false)
+   180→      setDeletingProject(null)
+   181→      fetchProjects()
+   182→    } catch {
+   183→      toast.error('Network error')
+   184→    } finally {
+   185→      setDeleting(false)
+   186→    }
+   187→  }
+   188→
+   189→  const openProject = (id: string) => {
+   190→    setSelectedProjectId(id)
+   191→    setCurrentView('project-detail')
+   192→  }
+   193→
+   194→  const filtered = projects.filter((p) => {
+   195→    if (statusFilter !== 'ALL' && p.status !== statusFilter) return false
+   196→    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.code.toLowerCase().includes(search.toLowerCase())) return false
+   197→    return true
+   198→  })
+   199→
+   200→  const formatBudget = (budget: number | null) => {
+   201→    if (!budget) return 'No budget set'
+   202→    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(budget)
+   203→  }
+   204→
+   205→  const statusTabs: { value: StatusFilter; label: string }[] = [
+   206→    { value: 'ALL', label: 'All' },
+   207→    { value: 'ACTIVE', label: 'Active' },
+   208→    { value: 'ON_HOLD', label: 'On Hold' },
+   209→    { value: 'COMPLETED', label: 'Completed' },
+   210→  ]
+   211→
+   212→  return (
+   213→    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+   214→      {/* Header */}
+   215→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+   216→        <div>
+   217→          <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
+   218→          <p className="text-muted-foreground text-sm mt-1">{filtered.length} project{filtered.length !== 1 ? 's' : ''}</p>
+   219→        </div>
+   220→        {can('create:projects') && (
+   221→          <Button className="gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm" onClick={openCreate}>
+   222→            <Plus className="h-4 w-4" /> New Project
+   223→          </Button>
+   224→        )}
+   225→      </div>
+   226→
+   227→      {/* Filters */}
+   228→      <div className="flex flex-col sm:flex-row gap-3">
+   229→        <div className="relative flex-1 max-w-sm">
+   230→          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+   231→          <Input placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+   232→        </div>
+   233→        <div className="flex gap-1 bg-muted rounded-lg p-1">
+   234→          {statusTabs.map((tab) => (
+   235→            <button
+   236→              key={tab.value}
+   237→              onClick={() => setStatusFilter(tab.value)}
+   238→              className={cn(
+   239→                'px-3 py-1.5 text-sm font-medium rounded-md transition-all',
+   240→                statusFilter === tab.value
+   241→                  ? 'bg-card text-foreground shadow-sm'
+   242→                  : 'text-muted-foreground hover:text-foreground'
+   243→              )}
+   244→            >
+   245→              {tab.label}
+   246→            </button>
+   247→          ))}
+   248→        </div>
+   249→        <div className="flex gap-1 bg-muted rounded-lg p-1">
+   250→          <button onClick={() => setViewMode('grid')} className={cn('p-2 rounded-md transition-all', viewMode === 'grid' ? 'bg-card shadow-sm' : 'text-muted-foreground')}>
+   251→            <LayoutGrid className="h-4 w-4" />
+   252→          </button>
+   253→          <button onClick={() => setViewMode('list')} className={cn('p-2 rounded-md transition-all', viewMode === 'list' ? 'bg-card shadow-sm' : 'text-muted-foreground')}>
+   254→            <List className="h-4 w-4" />
+   255→          </button>
+   256→        </div>
+   257→      </div>
+   258→
+   259→      {/* Projects Grid/List */}
+   260→      {loading ? (
+   261→        viewMode === 'grid' ? (
+   262→          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+   263→            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-56 rounded-xl" />)}
+   264→          </div>
+   265→        ) : (
+   266→          <div className="space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
+   267→        )
+   268→      ) : filtered.length === 0 ? (
+   269→        <div className="text-center py-16">
+   270→          <FolderKanban className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
+   271→          <p className="text-muted-foreground">No projects found</p>
+   272→        </div>
+   273→      ) : viewMode === 'grid' ? (
+   274→        <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" initial="hidden" animate="show" variants={{
+   275→          hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+   276→        }}>
+   277→          {filtered.map((project) => (
+   278→            <motion.div key={project.id} variants={{
+   279→              hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+   280→            }}>
+   281→              <Card className="border-0 shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer" onClick={() => openProject(project.id)}>
+   282→                <CardContent className="p-5">
+   283→                  <div className="flex items-start justify-between mb-3">
+   284→                    <div className="flex-1 min-w-0" onClick={(e) => { e.stopPropagation(); openProject(project.id) }}>
+   285→                      <h3 className="font-semibold text-sm truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{project.name}</h3>
+   286→                      <p className="text-xs text-muted-foreground font-mono mt-0.5">{project.code}</p>
+   287→                    </div>
+   288→                    <DropdownMenu>
+   289→                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+   290→                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+   291→                          <MoreHorizontal className="h-4 w-4" />
+   292→                        </Button>
+   293→                      </DropdownMenuTrigger>
+   294→                      <DropdownMenuContent align="end">
+   295→                        <DropdownMenuItem className="gap-2 cursor-pointer" onClick={(e) => { e.stopPropagation(); openProject(project.id) }}>
+   296→                          <Eye className="h-4 w-4" /> View
+   297→                        </DropdownMenuItem>
+   298→                        {can('edit:projects') && (
+   299→                          <DropdownMenuItem className="gap-2 cursor-pointer" onClick={(e) => { e.stopPropagation(); openEdit(project) }}>
+   300→                            <Pencil className="h-4 w-4" /> Edit
+   301→                          </DropdownMenuItem>
+   302→                        )}
+   303→                        {can('delete:projects') && (
+   304→                          <>
+   305→                            <DropdownMenuSeparator />
+   306→                            <DropdownMenuItem className="gap-2 cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400" onClick={(e) => { e.stopPropagation(); openDelete(project) }}>
+   307→                              <Trash2 className="h-4 w-4" /> Delete
+   308→                            </DropdownMenuItem>
+   309→                          </>
+   310→                        )}
+   311→                      </DropdownMenuContent>
+   312→                    </DropdownMenu>
+   313→                  </div>
+   314→
+   315→                  {project.description && (
+   316→                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{project.description}</p>
+   317→                  )}
+   318→
+   319→                  <Badge variant="outline" className={cn('text-[10px] mb-3', statusColor[project.status] || '')}>
+   320→                    {project.status.replace('_', ' ')}
+   321→                  </Badge>
+   322→
+   323→                  <div className="space-y-2">
+   324→                    <div className="flex items-center justify-between text-xs">
+   325→                      <span className="text-muted-foreground">Progress</span>
+   326→                      <span className="font-semibold">{project.progress}%</span>
+   327→                    </div>
+   328→                    <Progress value={project.progress} className="h-1.5" />
+   329→                  </div>
+   330→
+   331→                  <div className="flex items-center justify-between mt-4 pt-3 border-t">
+   332→                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   333→                      <DollarSign className="h-3.5 w-3.5" />
+   334→                      {formatBudget(project.budget)}
+   335→                    </div>
+   336→                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   337→                      <UsersIcon className="h-3.5 w-3.5" />
+   338→                      {project.memberCount || project._count?.members || 0}
+   339→                    </div>
+   340→                    {project.endDate && (
+   341→                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   342→                        <CalendarDays className="h-3.5 w-3.5" />
+   343→                        {new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+   344→                      </div>
+   345→                    )}
+   346→                  </div>
+   347→                </CardContent>
+   348→              </Card>
+   349→            </motion.div>
+   350→          ))}
+   351→        </motion.div>
+   352→      ) : (
+   353→        <div className="space-y-2">
+   354→          {filtered.map((project) => (
+   355→            <Card key={project.id} className="border-0 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group" onClick={() => openProject(project.id)}>
+   356→              <CardContent className="p-4 flex items-center gap-4">
+   357→                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 flex items-center justify-center shrink-0">
+   358→                  <FolderKanban className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+   359→                </div>
+   360→                <div className="flex-1 min-w-0">
+   361→                  <div className="flex items-center gap-2">
+   362→                    <h3 className="font-medium text-sm truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{project.name}</h3>
+   363→                    <Badge variant="outline" className={cn('text-[10px] shrink-0', statusColor[project.status] || '')}>
+   364→                      {project.status.replace('_', ' ')}
+   365→                    </Badge>
+   366→                  </div>
+   367→                  <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+   368→                    <span className="font-mono">{project.code}</span>
+   369→                    <span>{project.progress}% complete</span>
+   370→                    <span className="hidden sm:inline">{formatBudget(project.budget)}</span>
+   371→                  </div>
+   372→                </div>
+   373→                <Progress value={project.progress} className="h-1.5 w-20 hidden sm:block" />
+   374→                <DropdownMenu>
+   375→                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+   376→                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+   377→                      <MoreHorizontal className="h-4 w-4" />
+   378→                    </Button>
+   379→                  </DropdownMenuTrigger>
+   380→                  <DropdownMenuContent align="end">
+   381→                    <DropdownMenuItem className="gap-2 cursor-pointer" onClick={(e) => { e.stopPropagation(); openProject(project.id) }}>
+   382→                      <Eye className="h-4 w-4" /> View
+   383→                    </DropdownMenuItem>
+   384→                    {can('edit:projects') && (
+   385→                      <DropdownMenuItem className="gap-2 cursor-pointer" onClick={(e) => { e.stopPropagation(); openEdit(project) }}>
+   386→                        <Pencil className="h-4 w-4" /> Edit
+   387→                      </DropdownMenuItem>
+   388→                    )}
+   389→                    {can('delete:projects') && (
+   390→                      <DropdownMenuItem className="gap-2 cursor-pointer text-red-600 dark:text-red-400" onClick={(e) => { e.stopPropagation(); openDelete(project) }}>
+   391→                        <Trash2 className="h-4 w-4" /> Delete
+   392→                      </DropdownMenuItem>
+   393→                    )}
+   394→                  </DropdownMenuContent>
+   395→                </DropdownMenu>
+   396→              </CardContent>
+   397→            </Card>
+   398→          ))}
+   399→        </div>
+   400→      )}
+   401→
+   402→      {/* Create/Edit Dialog */}
+   403→      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+   404→        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+   405→          <DialogHeader>
+   406→            <DialogTitle>{editingProject ? 'Edit Project' : 'Create New Project'}</DialogTitle>
+   407→            <DialogDescription>{editingProject ? 'Update project details below.' : 'Fill in the details to create a new project.'}</DialogDescription>
+   408→          </DialogHeader>
+   409→          <ScrollArea className="flex-1 -mx-6 px-6">
+   410→            <div className="space-y-4 py-2">
+   411→              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   412→                <div className="space-y-2">
+   413→                  <Label htmlFor="proj-name">Project Name *</Label>
+   414→                  <Input id="proj-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Skyline Tower" />
+   415→                </div>
+   416→                <div className="space-y-2">
+   417→                  <Label htmlFor="proj-status">Status</Label>
+   418→                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+   419→                    <SelectTrigger id="proj-status"><SelectValue /></SelectTrigger>
+   420→                    <SelectContent>
+   421→                      <SelectItem value="PLANNING">Planning</SelectItem>
+   422→                      <SelectItem value="ACTIVE">Active</SelectItem>
+   423→                      <SelectItem value="ON_HOLD">On Hold</SelectItem>
+   424→                      <SelectItem value="COMPLETED">Completed</SelectItem>
+   425→                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+   426→                    </SelectContent>
+   427→                  </Select>
+   428→                </div>
+   429→              </div>
+   430→              <div className="space-y-2">
+   431→                <Label htmlFor="proj-desc">Description</Label>
+   432→                <Textarea id="proj-desc" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Brief project description..." rows={3} />
+   433→              </div>
+   434→              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   435→                <div className="space-y-2">
+   436→                  <Label htmlFor="proj-start">Start Date</Label>
+   437→                  <Input id="proj-start" type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+   438→                </div>
+   439→                <div className="space-y-2">
+   440→                  <Label htmlFor="proj-end">End Date</Label>
+   441→                  <Input id="proj-end" type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+   442→                </div>
+   443→                <div className="space-y-2">
+   444→                  <Label htmlFor="proj-budget">Budget ($)</Label>
+   445→                  <Input id="proj-budget" type="number" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} placeholder="0" />
+   446→                </div>
+   447→                <div className="space-y-2">
+   448→                  <Label htmlFor="proj-type">Project Type</Label>
+   449→                  <Select value={form.projectType} onValueChange={(v) => setForm({ ...form, projectType: v })}>
+   450→                    <SelectTrigger id="proj-type"><SelectValue /></SelectTrigger>
+   451→                    <SelectContent>
+   452→                      <SelectItem value="COMMERCIAL">Commercial</SelectItem>
+   453→                      <SelectItem value="RESIDENTIAL">Residential</SelectItem>
+   454→                      <SelectItem value="INDUSTRIAL">Industrial</SelectItem>
+   455→                      <SelectItem value="INFRASTRUCTURE">Infrastructure</SelectItem>
+   456→                      <SelectItem value="INSTITUTIONAL">Institutional</SelectItem>
+   457→                    </SelectContent>
+   458→                  </Select>
+   459→                </div>
+   460→              </div>
+   461→              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   462→                <div className="space-y-2">
+   463→                  <Label htmlFor="proj-contract">Contract Type</Label>
+   464→                  <Select value={form.contractType} onValueChange={(v) => setForm({ ...form, contractType: v })}>
+   465→                    <SelectTrigger id="proj-contract"><SelectValue /></SelectTrigger>
+   466→                    <SelectContent>
+   467→                      <SelectItem value="LUMP_SUM">Lump Sum</SelectItem>
+   468→                      <SelectItem value="UNIT_PRICE">Unit Price</SelectItem>
+   469→                      <SelectItem value="COST_PLUS">Cost Plus</SelectItem>
+   470→                      <SelectItem value="TURNKEY">Turnkey</SelectItem>
+   471→                      <SelectItem value="DESIGN_BUILD">Design Build</SelectItem>
+   472→                    </SelectContent>
+   473→                  </Select>
+   474→                </div>
+   475→                <div className="space-y-2">
+   476→                  <Label htmlFor="proj-workforce">Total Workforce</Label>
+   477→                  <Input id="proj-workforce" type="number" value={form.totalWorkforce} onChange={(e) => setForm({ ...form, totalWorkforce: e.target.value })} placeholder="0" />
+   478→                </div>
+   479→              </div>
+   480→              <Separator />
+   481→              <p className="text-sm font-medium text-muted-foreground">Site Information</p>
+   482→              <div className="space-y-2">
+   483→                <Label htmlFor="proj-address">Site Address</Label>
+   484→                <Input id="proj-address" value={form.siteAddress} onChange={(e) => setForm({ ...form, siteAddress: e.target.value })} placeholder="Full site address" />
+   485→              </div>
+   486→              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   487→                <div className="space-y-2">
+   488→                  <Label htmlFor="proj-contact">Site Contact</Label>
+   489→                  <Input id="proj-contact" value={form.siteContact} onChange={(e) => setForm({ ...form, siteContact: e.target.value })} placeholder="Contact name" />
+   490→                </div>
+   491→                <div className="space-y-2">
+   492→                  <Label htmlFor="proj-semail">Site Email</Label>
+   493→                  <Input id="proj-semail" type="email" value={form.siteEmail} onChange={(e) => setForm({ ...form, siteEmail: e.target.value })} placeholder="email@site.com" />
+   494→                </div>
+   495→                <div className="space-y-2">
+   496→                  <Label htmlFor="proj-sphone">Site Phone</Label>
+   497→                  <Input id="proj-sphone" value={form.sitePhone} onChange={(e) => setForm({ ...form, sitePhone: e.target.value })} placeholder="+1 (555) 000-0000" />
+   498→                </div>
+   499→              </div>
+   500→            </div>
+   501→          </ScrollArea>
+   502→          <DialogFooter className="pt-4 border-t">
+   503→            <DialogClose asChild>
+   504→              <Button variant="outline">Cancel</Button>
+   505→            </DialogClose>
+   506→            <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white" onClick={handleSave} disabled={saving}>
+   507→              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+   508→              {editingProject ? 'Update Project' : 'Create Project'}
+   509→            </Button>
+   510→          </DialogFooter>
+   511→        </DialogContent>
+   512→      </Dialog>
+   513→
+   514→      {/* Delete Dialog */}
+   515→      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+   516→        <DialogContent className="max-w-sm">
+   517→          <DialogHeader>
+   518→            <DialogTitle>Delete Project</DialogTitle>
+   519→            <DialogDescription>
+   520→              Are you sure you want to delete &quot;{deletingProject?.name}&quot;? This action cannot be undone.
+   521→            </DialogDescription>
+   522→          </DialogHeader>
+   523→          <DialogFooter>
+   524→            <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+   525→            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+   526→              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+   527→              Delete
+   528→            </Button>
+   529→          </DialogFooter>
+   530→        </DialogContent>
+   531→      </Dialog>
+   532→    </div>
+   533→  )
+   534→}
+   535→
+   536→

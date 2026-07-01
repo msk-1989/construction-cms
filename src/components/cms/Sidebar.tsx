@@ -54,10 +54,11 @@ export function Sidebar() {
         const res = await globalThis.fetch('/api/dashboard')
         if (res.ok && !cancelled) {
           const data = await res.json()
+          const d = data.data || data
           setBadgeCounts({
-            tasks: data.pendingTasks || 0,
-            notifications: data.totalTasks ? 0 : 0,
-            projects: data.activeProjects || 0,
+            tasks: d.pendingTasks || 0,
+            notifications: d.totalTasks ? 0 : 0,
+            projects: d.activeProjects || 0,
           })
         }
       } catch {

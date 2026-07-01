@@ -1,0 +1,486 @@
+     1→'use client'
+     2→
+     3→import { useState, useEffect, useMemo, useCallback } from 'react'
+     4→import { motion, AnimatePresence } from 'framer-motion'
+     5→import {
+     6→  Users, Search, Plus, Edit3, Trash2, Mail, Phone, Hash,
+     7→  Briefcase, Building2, UserCheck, UserX, BarChart3, Network,
+     8→  Loader2, X, ChevronRight,
+     9→} from 'lucide-react'
+    10→import {
+    11→  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+    12→} from 'recharts'
+    13→import { toast } from 'sonner'
+    14→import { cn } from '@/lib/utils'
+    15→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+    16→import { Button } from '@/components/ui/button'
+    17→import { Input } from '@/components/ui/input'
+    18→import { Badge } from '@/components/ui/badge'
+    19→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+    20→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+    21→import { Label } from '@/components/ui/label'
+    22→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+    23→import { Skeleton } from '@/components/ui/skeleton'
+    24→import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+    25→import { getRoleBadgeClass, getRoleLabel } from '@/lib/permissions'
+    26→import { usePermissions } from '@/hooks/usePermissions'
+    27→import type { User } from '@/types/cms'
+    28→
+    29→interface TeamMember extends User {
+    30→  _count?: {
+    31→    projectMemberships?: number
+    32→    assignedTasks?: number
+    33→    createdProjects?: number
+    34→  }
+    35→}
+    36→
+    37→export function TeamView() {
+    38→  const { can } = usePermissions()
+    39→  const [members, setMembers] = useState<TeamMember[]>([])
+    40→  const [loading, setLoading] = useState(true)
+    41→  const [search, setSearch] = useState('')
+    42→  const [addOpen, setAddOpen] = useState(false)
+    43→  const [editOpen, setEditOpen] = useState(false)
+    44→  const [deleteOpen, setDeleteOpen] = useState(false)
+    45→  const [selected, setSelected] = useState<TeamMember | null>(null)
+    46→  const [saving, setSaving] = useState(false)
+    47→
+    48→  // Form state
+    49→  const [form, setForm] = useState({ name: '', email: '', phone: '', role: 'MEMBER', position: '', department: '', employeeId: '' })
+    50→
+    51→  const fetchTeam = useCallback(async () => {
+    52→    try {
+    53→      const res = await globalThis.fetch('/api/team')
+    54→      const json = await res.json()
+    55→      if (json.success) setMembers(json.data)
+    56→      else toast.error(json.error || 'Failed to load team')
+    57→    } catch {
+    58→      toast.error('Failed to load team')
+    59→    } finally {
+    60→      setLoading(false)
+    61→    }
+    62→  }, [])
+    63→
+    64→  useEffect(() => { fetchTeam() }, [fetchTeam])
+    65→
+    66→  const filtered = useMemo(() => {
+    67→    if (!search.trim()) return members
+    68→    const q = search.toLowerCase()
+    69→    return members.filter(
+    70→      (m) =>
+    71→        m.name.toLowerCase().includes(q) ||
+    72→        m.email.toLowerCase().includes(q) ||
+    73→        m.position?.toLowerCase().includes(q) ||
+    74→        m.department?.toLowerCase().includes(q) ||
+    75→        m.role.toLowerCase().includes(q)
+    76→    )
+    77→  }, [members, search])
+    78→
+    79→  const resetForm = () => setForm({ name: '', email: '', phone: '', role: 'MEMBER', position: '', department: '', employeeId: '' })
+    80→
+    81→  const openEdit = (m: TeamMember) => {
+    82→    setSelected(m)
+    83→    setForm({ name: m.name, email: m.email, phone: m.phone || '', role: m.role as string, position: m.position || '', department: m.department || '', employeeId: m.employeeId || '' })
+    84→    setEditOpen(true)
+    85→  }
+    86→
+    87→  const openDelete = (m: TeamMember) => { setSelected(m); setDeleteOpen(true) }
+    88→
+    89→  const handleAdd = async () => {
+    90→    if (!form.name || !form.email) { toast.error('Name and email are required'); return }
+    91→    setSaving(true)
+    92→    try {
+    93→      const res = await globalThis.fetch('/api/auth/register', {
+    94→        method: 'POST',
+    95→        headers: { 'Content-Type': 'application/json' },
+    96→        body: JSON.stringify({ ...form, password: 'Password123!' }),
+    97→      })
+    98→      const json = await res.json()
+    99→      if (json.success) { toast.success('Member added'); setAddOpen(false); resetForm(); fetchTeam() }
+   100→      else toast.error(json.error || 'Failed to add member')
+   101→    } catch { toast.error('Failed to add member') }
+   102→    finally { setSaving(false) }
+   103→  }
+   104→
+   105→  const handleEdit = async () => {
+   106→    if (!selected) return
+   107→    setSaving(true)
+   108→    try {
+   109→      const res = await globalThis.fetch('/api/auth/me', {
+   110→        method: 'PUT',
+   111→        headers: { 'Content-Type': 'application/json' },
+   112→        body: JSON.stringify({ id: selected.id, ...form }),
+   113→      })
+   114→      const json = await res.json()
+   115→      if (json.success) { toast.success('Member updated'); setEditOpen(false); fetchTeam() }
+   116→      else toast.error(json.error || 'Failed to update')
+   117→    } catch { toast.error('Failed to update member') }
+   118→    finally { setSaving(false) }
+   119→  }
+   120→
+   121→  const handleDelete = async () => {
+   122→    if (!selected) return
+   123→    setSaving(true)
+   124→    try {
+   125→      const res = await globalThis.fetch(`/api/team?id=${selected.id}`, { method: 'DELETE' })
+   126→      const json = await res.json()
+   127→      if (json.success) { toast.success('Member removed'); setDeleteOpen(false); fetchTeam() }
+   128→      else toast.error(json.error || 'Failed to remove')
+   129→    } catch { toast.error('Failed to remove member') }
+   130→    finally { setSaving(false) }
+   131→  }
+   132→
+   133→  // Org chart data
+   134→  const orgData = useMemo(() => {
+   135→    const admins = members.filter((m) => m.role === 'ADMIN')
+   136→    const managers = members.filter((m) => m.role === 'MANAGER')
+   137→    const teamMembers = members.filter((m) => m.role === 'MEMBER')
+   138→    return { admins, managers, teamMembers }
+   139→  }, [members])
+   140→
+   141→  // Workload chart data
+   142→  const workloadData = useMemo(() => {
+   143→    return members
+   144→      .filter((m) => (m._count?.assignedTasks ?? 0) > 0)
+   145→      .map((m) => ({
+   146→        name: m.name.split(' ')[0],
+   147→        tasks: m._count?.assignedTasks ?? 0,
+   148→        role: m.role,
+   149→      }))
+   150→      .sort((a, b) => b.tasks - a.tasks)
+   151→      .slice(0, 12)
+   152→  }, [members])
+   153→
+   154→  const avgCompletion = useMemo(() => {
+   155→    if (members.length === 0) return 0
+   156→    const total = members.reduce((acc, m) => acc + (m._count?.assignedTasks ?? 0), 0)
+   157→    return Math.round((total / members.length) * 10) / 10
+   158→  }, [members])
+   159→
+   160→  const totalTasks = useMemo(() => {
+   161→    return members.reduce((acc, m) => acc + (m._count?.assignedTasks ?? 0), 0)
+   162→  }, [members])
+   163→
+   164→  const statusBadge = (status: string) => {
+   165→    if (status === 'ACTIVE') return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">Active</Badge>
+   166→    return <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800">Inactive</Badge>
+   167→  }
+   168→
+   169→  const chartColors = ['#f59e0b', '#d97706', '#b45309', '#92400e', '#78350f', '#fbbf24', '#fcd34d', '#fde68a', '#fef3c7', '#f97316', '#ea580c', '#c2410c']
+   170→
+   171→  return (
+   172→    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+   173→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+   174→        <div>
+   175→          <h1 className="text-2xl font-bold text-foreground">Team</h1>
+   176→          <p className="text-sm text-muted-foreground mt-1">Manage your team members and view workload</p>
+   177→        </div>
+   178→        {can('manage:team') && (
+   179→          <Button onClick={() => { resetForm(); setAddOpen(true) }} className="bg-amber-600 hover:bg-amber-700 text-white">
+   180→            <Plus className="h-4 w-4 mr-2" /> Add Member
+   181→          </Button>
+   182→        )}
+   183→      </div>
+   184→
+   185→      <Tabs defaultValue="members" className="w-full">
+   186→        <TabsList className="bg-muted/50">
+   187→          <TabsTrigger value="members" className="gap-2"><Users className="h-4 w-4" /> Members</TabsTrigger>
+   188→          <TabsTrigger value="orgchart" className="gap-2"><Network className="h-4 w-4" /> Org Chart</TabsTrigger>
+   189→          <TabsTrigger value="workload" className="gap-2"><BarChart3 className="h-4 w-4" /> Workload</TabsTrigger>
+   190→        </TabsList>
+   191→
+   192→        {/* =================== MEMBERS TAB =================== */}
+   193→        <TabsContent value="members" className="mt-6 space-y-4">
+   194→          <div className="relative max-w-sm">
+   195→            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+   196→            <Input placeholder="Search members..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+   197→            {search && (
+   198→              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X className="h-4 w-4 text-muted-foreground hover:text-foreground" /></button>
+   199→            )}
+   200→          </div>
+   201→
+   202→          {loading ? (
+   203→            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+   204→              {Array.from({ length: 6 }).map((_, i) => (
+   205→                <Card key={i} className="border-0 shadow-sm"><CardContent className="p-4 space-y-3">
+   206→                  <div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-24" /></div></div>
+   207→                  <Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-3/4" />
+   208→                </CardContent></Card>
+   209→              ))}
+   210→            </div>
+   211→          ) : filtered.length === 0 ? (
+   212→            <Card className="border-0 shadow-sm"><CardContent className="py-12 flex flex-col items-center justify-center text-center">
+   213→              <Users className="h-12 w-12 text-muted-foreground/30 mb-3" />
+   214→              <p className="text-muted-foreground">{search ? 'No members match your search' : 'No team members yet'}</p>
+   215→              {!search && can('manage:team') && (
+   216→                <Button variant="outline" className="mt-3" onClick={() => { resetForm(); setAddOpen(true) }}><Plus className="h-4 w-4 mr-2" /> Add first member</Button>
+   217→              )}
+   218→            </CardContent></Card>
+   219→          ) : (
+   220→            <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+   221→              <AnimatePresence>
+   222→                {filtered.map((member) => (
+   223→                  <motion.div key={member.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+   224→                    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+   225→                      <CardContent className="p-4">
+   226→                        <div className="flex items-start justify-between mb-3">
+   227→                          <div className="flex items-center gap-3">
+   228→                            <Avatar className="h-10 w-10">
+   229→                              <AvatarFallback className="bg-amber-100 text-amber-700 text-sm font-semibold">
+   230→                                {member.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()}
+   231→                              </AvatarFallback>
+   232→                            </Avatar>
+   233→                            <div>
+   234→                              <p className="font-semibold text-sm text-foreground leading-tight">{member.name}</p>
+   235→                              <Badge className={cn('text-[10px] mt-1', getRoleBadgeClass(member.role))}>{getRoleLabel(member.role)}</Badge>
+   236→                            </div>
+   237→                          </div>
+   238→                          {can('manage:team') && (
+   239→                            <div className="flex items-center gap-1">
+   240→                              <button onClick={() => openEdit(member)} className="p-1.5 rounded-md hover:bg-muted transition-colors"><Edit3 className="h-3.5 w-3.5 text-muted-foreground" /></button>
+   241→                              <button onClick={() => openDelete(member)} className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="h-3.5 w-3.5 text-red-400" /></button>
+   242→                            </div>
+   243→                          )}
+   244→                        </div>
+   245→                        <div className="space-y-2 text-xs text-muted-foreground">
+   246→                          {member.position && <div className="flex items-center gap-2"><Briefcase className="h-3.5 w-3.5" />{member.position}</div>}
+   247→                          {member.department && <div className="flex items-center gap-2"><Building2 className="h-3.5 w-3.5" />{member.department}</div>}
+   248→                          <div className="flex items-center gap-2"><Mail className="h-3.5 w-3.5" />{member.email}</div>
+   249→                          {member.phone && <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" />{member.phone}</div>}
+   250→                          {member.employeeId && <div className="flex items-center gap-2"><Hash className="h-3.5 w-3.5" />{member.employeeId}</div>}
+   251→                        </div>
+   252→                        <div className="flex items-center justify-between mt-3 pt-3 border-t">
+   253→                          {statusBadge(member.status)}
+   254→                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+   255→                            <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" />{member._count?.projectMemberships ?? 0}</span>
+   256→                            <span className="flex items-center gap-1"><UserCheck className="h-3 w-3" />{member._count?.assignedTasks ?? 0}</span>
+   257→                          </div>
+   258→                        </div>
+   259→                      </CardContent>
+   260→                    </Card>
+   261→                  </motion.div>
+   262→                ))}
+   263→              </AnimatePresence>
+   264→            </motion.div>
+   265→          )}
+   266→        </TabsContent>
+   267→
+   268→        {/* =================== ORG CHART TAB =================== */}
+   269→        <TabsContent value="orgchart" className="mt-6">
+   270→          {loading ? (
+   271→            <div className="space-y-6"><Skeleton className="h-32 w-full max-w-md mx-auto" /><Skeleton className="h-24 w-full" /></div>
+   272→          ) : members.length === 0 ? (
+   273→            <Card className="border-0 shadow-sm"><CardContent className="py-12 flex flex-col items-center text-center">
+   274→              <Network className="h-12 w-12 text-muted-foreground/30 mb-3" /><p className="text-muted-foreground">No team members to display</p>
+   275→            </CardContent></Card>
+   276→          ) : (
+   277→            <div className="space-y-6 overflow-x-auto pb-4">
+   278→              {/* Admin Level */}
+   279→              {orgData.admins.length > 0 && (
+   280→                <div className="flex flex-col items-center">
+   281→                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Administration</p>
+   282→                  <div className="flex flex-wrap justify-center gap-3">
+   283→                    {orgData.admins.map((m) => (
+   284→                      <OrgNode key={m.id} member={m} />
+   285→                    ))}
+   286→                  </div>
+   287→                  {orgData.managers.length > 0 && (
+   288→                    <div className="w-px h-8 bg-amber-300 dark:bg-amber-700 my-2" />
+   289→                  )}
+   290→                </div>
+   291→              )}
+   292→              {/* Manager Level */}
+   293→              {orgData.managers.length > 0 && (
+   294→                <div className="flex flex-col items-center">
+   295→                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Management</p>
+   296→                  <div className="flex flex-wrap justify-center gap-3">
+   297→                    {orgData.managers.map((m) => (
+   298→                      <OrgNode key={m.id} member={m} />
+   299→                    ))}
+   300→                  </div>
+   301→                  {orgData.teamMembers.length > 0 && (
+   302→                    <div className="w-px h-8 bg-amber-300 dark:bg-amber-700 my-2" />
+   303→                  )}
+   304→                </div>
+   305→              )}
+   306→              {/* Member Level */}
+   307→              {orgData.teamMembers.length > 0 && (
+   308→                <div className="flex flex-col items-center">
+   309→                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Team Members</p>
+   310→                  <div className="flex flex-wrap justify-center gap-3">
+   311→                    {orgData.teamMembers.map((m) => (
+   312→                      <OrgNode key={m.id} member={m} />
+   313→                    ))}
+   314→                  </div>
+   315→                </div>
+   316→              )}
+   317→            </div>
+   318→          )}
+   319→        </TabsContent>
+   320→
+   321→        {/* =================== WORKLOAD TAB =================== */}
+   322→        <TabsContent value="workload" className="mt-6 space-y-6">
+   323→          {loading ? (
+   324→            <div className="space-y-4"><Skeleton className="h-40 w-full" /><div className="grid grid-cols-2 gap-4"><Skeleton className="h-20" /><Skeleton className="h-20" /></div></div>
+   325→          ) : members.length === 0 ? (
+   326→            <Card className="border-0 shadow-sm"><CardContent className="py-12 flex flex-col items-center text-center">
+   327→              <BarChart3 className="h-12 w-12 text-muted-foreground/30 mb-3" /><p className="text-muted-foreground">No workload data available</p>
+   328→            </CardContent></Card>
+   329→          ) : (
+   330→            <>
+   331→              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   332→                <Card className="border-0 shadow-sm"><CardContent className="p-4">
+   333→                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Avg Tasks per Member</p>
+   334→                  <p className="text-2xl font-bold text-foreground mt-1">{avgCompletion}</p>
+   335→                </CardContent></Card>
+   336→                <Card className="border-0 shadow-sm"><CardContent className="p-4">
+   337→                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Assigned Tasks</p>
+   338→                  <p className="text-2xl font-bold text-foreground mt-1">{totalTasks}</p>
+   339→                </CardContent></Card>
+   340→              </div>
+   341→              <Card className="border-0 shadow-sm"><CardHeader><CardTitle className="text-base">Task Distribution</CardTitle></CardHeader>
+   342→                <CardContent className="h-72">
+   343→                  {workloadData.length > 0 ? (
+   344→                    <ResponsiveContainer width="100%" height="100%">
+   345→                      <BarChart data={workloadData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+   346→                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+   347→                        <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+   348→                        <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+   349→                        <Tooltip
+   350→                          contentStyle={{ backgroundColor: 'hsl(var(--card))', border: 'none', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+   351→                          labelStyle={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}
+   352→                        />
+   353→                        <Bar dataKey="tasks" radius={[4, 4, 0, 0]}>
+   354→                          {workloadData.map((_, index) => (
+   355→                            <Cell key={index} fill={chartColors[index % chartColors.length]} />
+   356→                          ))}
+   357→                        </Bar>
+   358→                      </BarChart>
+   359→                    </ResponsiveContainer>
+   360→                  ) : (
+   361→                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No task data available</div>
+   362→                  )}
+   363→                </CardContent>
+   364→              </Card>
+   365→            </>
+   366→          )}
+   367→        </TabsContent>
+   368→      </Tabs>
+   369→
+   370→      {/* =================== ADD MEMBER DIALOG =================== */}
+   371→      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+   372→        <DialogContent className="sm:max-w-md">
+   373→          <DialogHeader><DialogTitle>Add Team Member</DialogTitle></DialogHeader>
+   374→          <div className="space-y-4 py-2">
+   375→            <div className="space-y-2"><Label htmlFor="add-name">Name</Label><Input id="add-name" placeholder="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+   376→            <div className="space-y-2"><Label htmlFor="add-email">Email</Label><Input id="add-email" type="email" placeholder="email@company.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+   377→            <div className="space-y-2"><Label htmlFor="add-role">Role</Label>
+   378→              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
+   379→                <SelectTrigger><SelectValue /></SelectTrigger>
+   380→                <SelectContent>
+   381→                  <SelectItem value="MEMBER">Team Member</SelectItem>
+   382→                  <SelectItem value="MANAGER">Project Manager</SelectItem>
+   383→                  <SelectItem value="ADMIN">Administrator</SelectItem>
+   384→                </SelectContent>
+   385→              </Select>
+   386→            </div>
+   387→            <div className="grid grid-cols-2 gap-3">
+   388→              <div className="space-y-2"><Label htmlFor="add-position">Position</Label><Input id="add-position" placeholder="Position" value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} /></div>
+   389→              <div className="space-y-2"><Label htmlFor="add-dept">Department</Label><Input id="add-dept" placeholder="Department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
+   390→            </div>
+   391→            <div className="space-y-2"><Label htmlFor="add-phone">Phone</Label><Input id="add-phone" placeholder="Phone number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+   392→            <div className="space-y-2"><Label htmlFor="add-eid">Employee ID</Label><Input id="add-eid" placeholder="EMP-001" value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} /></div>
+   393→          </div>
+   394→          <DialogFooter>
+   395→            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+   396→            <Button onClick={handleAdd} disabled={saving} className="bg-amber-600 hover:bg-amber-700 text-white">
+   397→              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Add Member
+   398→            </Button>
+   399→          </DialogFooter>
+   400→        </DialogContent>
+   401→      </Dialog>
+   402→
+   403→      {/* =================== EDIT MEMBER DIALOG =================== */}
+   404→      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+   405→        <DialogContent className="sm:max-w-md">
+   406→          <DialogHeader><DialogTitle>Edit Member</DialogTitle></DialogHeader>
+   407→          <div className="space-y-4 py-2">
+   408→            <div className="space-y-2"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+   409→            <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+   410→            <div className="space-y-2"><Label>Role</Label>
+   411→              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
+   412→                <SelectTrigger><SelectValue /></SelectTrigger>
+   413→                <SelectContent>
+   414→                  <SelectItem value="MEMBER">Team Member</SelectItem>
+   415→                  <SelectItem value="MANAGER">Project Manager</SelectItem>
+   416→                  <SelectItem value="ADMIN">Administrator</SelectItem>
+   417→                </SelectContent>
+   418→              </Select>
+   419→            </div>
+   420→            <div className="grid grid-cols-2 gap-3">
+   421→              <div className="space-y-2"><Label>Position</Label><Input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} /></div>
+   422→              <div className="space-y-2"><Label>Department</Label><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
+   423→            </div>
+   424→            <div className="space-y-2"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+   425→            <div className="space-y-2"><Label>Employee ID</Label><Input value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} /></div>
+   426→          </div>
+   427→          <DialogFooter>
+   428→            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+   429→            <Button onClick={handleEdit} disabled={saving} className="bg-amber-600 hover:bg-amber-700 text-white">
+   430→              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save Changes
+   431→            </Button>
+   432→          </DialogFooter>
+   433→        </DialogContent>
+   434→      </Dialog>
+   435→
+   436→      {/* =================== DELETE CONFIRMATION =================== */}
+   437→      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+   438→        <DialogContent className="sm:max-w-sm">
+   439→          <DialogHeader><DialogTitle>Remove Member</DialogTitle></DialogHeader>
+   440→          <p className="text-sm text-muted-foreground">
+   441→            Are you sure you want to remove <strong>{selected?.name}</strong> from the team? This action cannot be undone.
+   442→          </p>
+   443→          <DialogFooter>
+   444→            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+   445→            <Button variant="destructive" onClick={handleDelete} disabled={saving}>
+   446→              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Remove
+   447→            </Button>
+   448→          </DialogFooter>
+   449→        </DialogContent>
+   450→      </Dialog>
+   451→    </div>
+   452→  )
+   453→}
+   454→
+   455→/* =================== Org Chart Node Component =================== */
+   456→function OrgNode({ member }: { member: TeamMember }) {
+   457→  return (
+   458→    <motion.div
+   459→      initial={{ opacity: 0, scale: 0.9 }}
+   460→      animate={{ opacity: 1, scale: 1 }}
+   461→      transition={{ duration: 0.25 }}
+   462→    >
+   463→      <Card className={cn(
+   464→        'border-0 shadow-sm min-w-[160px] max-w-[200px] transition-shadow hover:shadow-md',
+   465→        member.role === 'ADMIN' && 'ring-2 ring-red-200 dark:ring-red-800',
+   466→        member.role === 'MANAGER' && 'ring-2 ring-amber-200 dark:ring-amber-800',
+   467→      )}>
+   468→        <CardContent className="p-3 text-center">
+   469→          <Avatar className="h-10 w-10 mx-auto mb-2">
+   470→            <AvatarFallback className={cn(
+   471→              'text-sm font-semibold',
+   472→              member.role === 'ADMIN' && 'bg-red-100 text-red-700',
+   473→              member.role === 'MANAGER' && 'bg-amber-100 text-amber-700',
+   474→              member.role === 'MEMBER' && 'bg-emerald-100 text-emerald-700',
+   475→            )}>
+   476→              {member.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()}
+   477→            </AvatarFallback>
+   478→          </Avatar>
+   479→          <p className="font-semibold text-sm text-foreground truncate">{member.name}</p>
+   480→          <Badge className={cn('text-[10px] mt-1', getRoleBadgeClass(member.role))}>{getRoleLabel(member.role)}</Badge>
+   481→          {member.position && <p className="text-[11px] text-muted-foreground mt-1 truncate">{member.position}</p>}
+   482→        </CardContent>
+   483→      </Card>
+   484→    </motion.div>
+   485→  )
+   486→}

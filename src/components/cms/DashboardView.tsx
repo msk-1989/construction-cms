@@ -62,7 +62,7 @@ export function DashboardView() {
       const res = await globalThis.fetch('/api/dashboard')
       if (res.ok) {
         const data = await res.json()
-        setStats(data)
+        setStats(data.data || data)
       }
     } catch {
       // silent

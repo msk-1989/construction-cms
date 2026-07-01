@@ -1,0 +1,667 @@
+     1→'use client'
+     2→
+     3→import { useState, useEffect, useCallback, useMemo } from 'react'
+     4→import { motion, AnimatePresence } from 'framer-motion'
+     5→import {
+     6→  Plus, Search, List, Columns3, MoreHorizontal, Pencil, Trash2, ListTodo,
+     7→  Loader2, CalendarDays, User, ArrowUpCircle, Filter
+     8→} from 'lucide-react'
+     9→import { cn } from '@/lib/utils'
+    10→import { Card, CardContent } from '@/components/ui/card'
+    11→import { Button } from '@/components/ui/button'
+    12→import { Badge } from '@/components/ui/badge'
+    13→import { Input } from '@/components/ui/input'
+    14→import { Label } from '@/components/ui/label'
+    15→import { Progress } from '@/components/ui/progress'
+    16→import { Skeleton } from '@/components/ui/skeleton'
+    17→import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+    18→import { Checkbox } from '@/components/ui/checkbox'
+    19→import { ScrollArea } from '@/components/ui/scroll-area'
+    20→import {
+    21→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
+    22→} from '@/components/ui/dialog'
+    23→import {
+    24→  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel
+    25→} from '@/components/ui/dropdown-menu'
+    26→import {
+    27→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+    28→} from '@/components/ui/select'
+    29→import { Textarea } from '@/components/ui/textarea'
+    30→import { useAuthStore } from '@/store/useAuthStore'
+    31→import { useAppStore } from '@/store/useAppStore'
+    32→import { usePermissions } from '@/hooks/usePermissions'
+    33→import { toast } from 'sonner'
+    34→import type { Task, TaskStatus, TaskPriority, Project } from '@/types/cms'
+    35→
+    36→const taskStatusColor: Record<string, string> = {
+    37→  PENDING: 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400 border-gray-200 dark:border-gray-700',
+    38→  IN_PROGRESS: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+    39→  COMPLETED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+    40→  ON_HOLD: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-800',
+    41→  CANCELLED: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800',
+    42→}
+    43→
+    44→const priorityColor: Record<string, string> = {
+    45→  HIGH: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    46→  MEDIUM: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    47→  LOW: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    48→}
+    49→
+    50→type ViewMode = 'list' | 'kanban'
+    51→type TabFilter = 'all' | 'my' | 'byStatus'
+    52→
+    53→const KANBAN_COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
+    54→  { status: 'PENDING', label: 'Pending', color: 'bg-gray-500' },
+    55→  { status: 'IN_PROGRESS', label: 'In Progress', color: 'bg-amber-500' },
+    56→  { status: 'COMPLETED', label: 'Completed', color: 'bg-emerald-500' },
+    57→  { status: 'ON_HOLD', label: 'On Hold', color: 'bg-orange-500' },
+    58→  { status: 'CANCELLED', label: 'Cancelled', color: 'bg-red-500' },
+    59→]
+    60→
+    61→interface TaskFormData {
+    62→  title: string
+    63→  description: string
+    64→  status: string
+    65→  priority: string
+    66→  projectId: string
+    67→  assigneeId: string
+    68→  dueDate: string
+    69→  estimatedHours: string
+    70→  billable: boolean
+    71→  isMilestone: boolean
+    72→}
+    73→
+    74→const emptyForm: TaskFormData = {
+    75→  title: '', description: '', status: 'PENDING', priority: 'MEDIUM',
+    76→  projectId: '', assigneeId: '', dueDate: '', estimatedHours: '',
+    77→  billable: false, isMilestone: false,
+    78→}
+    79→
+    80→export function TasksView() {
+    81→  const user = useAuthStore((s) => s.user)
+    82→  const { can } = usePermissions()
+    83→  const setCurrentView = useAppStore((s) => s.setCurrentView)
+    84→  const setSelectedProjectId = useAppStore((s) => s.setSelectedProjectId)
+    85→
+    86→  const [tasks, setTasks] = useState<Task[]>([])
+    87→  const [projects, setProjects] = useState<Project[]>([])
+    88→  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string }[]>([])
+    89→  const [loading, setLoading] = useState(true)
+    90→  const [search, setSearch] = useState('')
+    91→  const [priorityFilter, setPriorityFilter] = useState<string>('ALL')
+    92→  const [tabFilter, setTabFilter] = useState<TabFilter>('all')
+    93→  const [viewMode, setViewMode] = useState<ViewMode>('list')
+    94→
+    95→  // Dialogs
+    96→  const [dialogOpen, setDialogOpen] = useState(false)
+    97→  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    98→  const [editingTask, setEditingTask] = useState<Task | null>(null)
+    99→  const [deletingTask, setDeletingTask] = useState<Task | null>(null)
+   100→  const [form, setForm] = useState<TaskFormData>(emptyForm)
+   101→  const [saving, setSaving] = useState(false)
+   102→  const [deleting, setDeleting] = useState(false)
+   103→
+   104→  // Bulk
+   105→  const [selected, setSelected] = useState<Set<string>>(new Set())
+   106→  const [bulkAction, setBulkAction] = useState<string>('')
+   107→
+   108→  const fetchTasks = useCallback(async () => {
+   109→    try {
+   110→      setLoading(true)
+   111→      const params = new URLSearchParams()
+   112→      if (search) params.set('search', search)
+   113→      if (priorityFilter !== 'ALL') params.set('priority', priorityFilter)
+   114→      if (tabFilter === 'my' && user?.id) params.set('assigneeId', user.id)
+   115→      const res = await globalThis.fetch(`/api/tasks?${params.toString()}`)
+   116→      if (res.ok) {
+   117→        const data = await res.json()
+   118→        setTasks(Array.isArray(data) ? data : data.tasks || [])
+   119→      }
+   120→    } catch {
+   121→      toast.error('Failed to load tasks')
+   122→    } finally {
+   123→      setLoading(false)
+   124→    }
+   125→  }, [search, priorityFilter, tabFilter, user?.id])
+   126→
+   127→  const fetchMeta = useCallback(async () => {
+   128→    try {
+   129→      const [pRes, tRes] = await Promise.all([
+   130→        globalThis.fetch('/api/projects?limit=100'),
+   131→        globalThis.fetch('/api/users?limit=100'),
+   132→      ])
+   133→      if (pRes.ok) {
+   134→        const data = await pRes.json()
+   135→        setProjects(Array.isArray(data) ? data : data.projects || [])
+   136→      }
+   137→      if (tRes.ok) {
+   138→        const data = await tRes.json()
+   139→        const members = Array.isArray(data) ? data : data.users || []
+   140→        setTeamMembers(members.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })))
+   141→      }
+   142→    } catch {
+   143→      // silent
+   144→    }
+   145→  }, [])
+   146→
+   147→  useEffect(() => { fetchTasks(); fetchMeta() }, [fetchTasks, fetchMeta])
+   148→
+   149→  const filtered = useMemo(() => {
+   150→    let result = tasks
+   151→    if (tabFilter === 'my' && user?.id) {
+   152→      result = result.filter((t) => t.assigneeId === user.id)
+   153→    }
+   154→    if (search) {
+   155→      const q = search.toLowerCase()
+   156→      result = result.filter((t) => t.title.toLowerCase().includes(q))
+   157→    }
+   158→    if (priorityFilter !== 'ALL') {
+   159→      result = result.filter((t) => t.priority === priorityFilter)
+   160→    }
+   161→    return result
+   162→  }, [tasks, tabFilter, search, priorityFilter, user?.id])
+   163→
+   164→  const openCreate = () => {
+   165→    setEditingTask(null)
+   166→    setForm({ ...emptyForm, projectId: projects[0]?.id || '' })
+   167→    setDialogOpen(true)
+   168→  }
+   169→
+   170→  const openEdit = (task: Task) => {
+   171→    setEditingTask(task)
+   172→    setForm({
+   173→      title: task.title,
+   174→      description: task.description || '',
+   175→      status: task.status,
+   176→      priority: task.priority,
+   177→      projectId: task.projectId,
+   178→      assigneeId: task.assigneeId || '',
+   179→      dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+   180→      estimatedHours: task.estimatedHours ? String(task.estimatedHours) : '',
+   181→      billable: task.billable,
+   182→      isMilestone: task.isMilestone,
+   183→    })
+   184→    setDialogOpen(true)
+   185→  }
+   186→
+   187→  const openDelete = (task: Task) => {
+   188→    setDeletingTask(task)
+   189→    setDeleteDialogOpen(true)
+   190→  }
+   191→
+   192→  const handleSave = async () => {
+   193→    if (!form.title.trim()) { toast.error('Task title is required'); return }
+   194→    if (!form.projectId) { toast.error('Please select a project'); return }
+   195→    setSaving(true)
+   196→    try {
+   197→      const body = {
+   198→        ...form,
+   199→        estimatedHours: form.estimatedHours ? Number(form.estimatedHours) : null,
+   200→        dueDate: form.dueDate || null,
+   201→        assigneeId: form.assigneeId || null,
+   202→      }
+   203→      const url = editingTask ? `/api/tasks/${editingTask.id}` : '/api/tasks'
+   204→      const method = editingTask ? 'PUT' : 'POST'
+   205→      const res = await globalThis.fetch(url, {
+   206→        method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+   207→      })
+   208→      if (!res.ok) {
+   209→        const data = await res.json()
+   210→        toast.error(data.error || 'Failed to save task')
+   211→        return
+   212→      }
+   213→      toast.success(editingTask ? 'Task updated' : 'Task created')
+   214→      setDialogOpen(false)
+   215→      fetchTasks()
+   216→    } catch {
+   217→      toast.error('Network error')
+   218→    } finally {
+   219→      setSaving(false)
+   220→    }
+   221→  }
+   222→
+   223→  const handleDelete = async () => {
+   224→    if (!deletingTask) return
+   225→    setDeleting(true)
+   226→    try {
+   227→      const res = await globalThis.fetch(`/api/tasks/${deletingTask.id}`, { method: 'DELETE' })
+   228→      if (!res.ok) { toast.error('Failed to delete task'); return }
+   229→      toast.success('Task deleted')
+   230→      setDeleteDialogOpen(false)
+   231→      setDeletingTask(null)
+   232→      fetchTasks()
+   233→    } catch {
+   234→      toast.error('Network error')
+   235→    } finally {
+   236→      setDeleting(false)
+   237→    }
+   238→  }
+   239→
+   240→  // Bulk operations
+   241→  const toggleSelect = (id: string) => {
+   242→    const next = new Set(selected)
+   243→    if (next.has(id)) next.delete(id)
+   244→    else next.add(id)
+   245→    setSelected(next)
+   246→  }
+   247→
+   248→  const toggleSelectAll = () => {
+   249→    if (selected.size === filtered.length) setSelected(new Set())
+   250→    else setSelected(new Set(filtered.map((t) => t.id)))
+   251→  }
+   252→
+   253→  const handleBulkAction = async () => {
+   254→    if (selected.size === 0 || !bulkAction) return
+   255→    try {
+   256→      const ids = Array.from(selected)
+   257→      let body: Record<string, unknown> = { ids }
+   258→
+   259→      if (bulkAction === 'delete') {
+   260→        const res = await globalThis.fetch('/api/tasks/bulk', {
+   261→          method: 'DELETE',
+   262→          headers: { 'Content-Type': 'application/json' },
+   263→          body: JSON.stringify(body),
+   264→        })
+   265→        if (!res.ok) { toast.error('Bulk delete failed'); return }
+   266→        toast.success(`${ids.length} task(s) deleted`)
+   267→      } else {
+   268→        // status, priority, assignee
+   269→        const [action, value] = bulkAction.split(':')
+   270→        if (!value) return
+   271→        body = { ids, [action]: value }
+   272→        const res = await globalThis.fetch('/api/tasks/bulk', {
+   273→          method: 'PATCH',
+   274→          headers: { 'Content-Type': 'application/json' },
+   275→          body: JSON.stringify(body),
+   276→        })
+   277→        if (!res.ok) { toast.error('Bulk update failed'); return }
+   278→        toast.success(`${ids.length} task(s) updated`)
+   279→      }
+   280→      setSelected(new Set())
+   281→      setBulkAction('')
+   282→      fetchTasks()
+   283→    } catch {
+   284→      toast.error('Network error')
+   285→    }
+   286→  }
+   287→
+   288→  const getMemberName = (id: string | null) => {
+   289→    if (!id) return 'Unassigned'
+   290→    const m = teamMembers.find((m) => m.id === id)
+   291→    return m?.name || id.slice(0, 8)
+   292→  }
+   293→
+   294→  const getProjectName = (id: string) => {
+   295→    const p = projects.find((p) => p.id === id)
+   296→    return p?.name || id.slice(0, 8)
+   297→  }
+   298→
+   299→  const formatDate = (dateStr: string | null) => {
+   300→    if (!dateStr) return ''
+   301→    try {
+   302→      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+   303→    } catch { return '' }
+   304→  }
+   305→
+   306→  const openProjectDetail = (projectId: string) => {
+   307→    setSelectedProjectId(projectId)
+   308→    setCurrentView('project-detail')
+   309→  }
+   310→
+   311→  const tabs: { value: TabFilter; label: string }[] = [
+   312→    { value: 'all', label: 'All Tasks' },
+   313→    { value: 'my', label: 'My Tasks' },
+   314→    { value: 'byStatus', label: 'By Status' },
+   315→  ]
+   316→
+   317→  const renderTaskRow = (task: Task) => (
+   318→    <Card key={task.id} className="border-0 shadow-sm hover:shadow-md transition-all duration-200">
+   319→      <CardContent className="p-4 flex items-center gap-3">
+   320→        <Checkbox
+   321→          checked={selected.has(task.id)}
+   322→          onCheckedChange={() => toggleSelect(task.id)}
+   323→          className="shrink-0"
+   324→        />
+   325→        <div className="flex-1 min-w-0">
+   326→          <div className="flex items-center gap-2 mb-1">
+   327→            <p className="text-sm font-medium truncate">{task.title}</p>
+   328→            {task.isMilestone && (
+   329→              <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400">
+   330→                Milestone
+   331→              </Badge>
+   332→            )}
+   333→          </div>
+   334→          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+   335→            <button
+   336→              className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+   337→              onClick={() => openProjectDetail(task.projectId)}
+   338→            >
+   339→              {getProjectName(task.projectId)}
+   340→            </button>
+   341→            <span className="flex items-center gap-1"><User className="h-3 w-3" />{getMemberName(task.assigneeId)}</span>
+   342→            {task.dueDate && <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" />{formatDate(task.dueDate)}</span>}
+   343→          </div>
+   344→        </div>
+   345→        <div className="flex items-center gap-2 shrink-0">
+   346→          <Badge variant="outline" className={cn('text-[10px] hidden sm:inline-flex', priorityColor[task.priority] || '')}>
+   347→            {task.priority}
+   348→          </Badge>
+   349→          <Badge variant="outline" className={cn('text-[10px]', taskStatusColor[task.status] || '')}>
+   350→            {task.status.replace('_', ' ')}
+   351→          </Badge>
+   352→          <Progress value={task.progress} className="h-1.5 w-12 hidden md:block" />
+   353→          <DropdownMenu>
+   354→            <DropdownMenuTrigger asChild>
+   355→              <Button variant="ghost" size="icon" className="h-7 w-7">
+   356→                <MoreHorizontal className="h-4 w-4" />
+   357→              </Button>
+   358→            </DropdownMenuTrigger>
+   359→            <DropdownMenuContent align="end">
+   360→              <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => openEdit(task)}>
+   361→                <Pencil className="h-4 w-4" /> Edit
+   362→              </DropdownMenuItem>
+   363→              {can('delete:tasks') && (
+   364→                <DropdownMenuItem className="gap-2 cursor-pointer text-red-600 dark:text-red-400" onClick={() => openDelete(task)}>
+   365→                  <Trash2 className="h-4 w-4" /> Delete
+   366→                </DropdownMenuItem>
+   367→              )}
+   368→            </DropdownMenuContent>
+   369→          </DropdownMenu>
+   370→        </div>
+   371→      </CardContent>
+   372→    </Card>
+   373→  )
+   374→
+   375→  const renderKanbanCard = (task: Task) => (
+   376→    <Card key={task.id} className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer group" onClick={() => openEdit(task)}>
+   377→      <CardContent className="p-3">
+   378→        <div className="flex items-start justify-between gap-2 mb-2">
+   379→          <p className="text-sm font-medium line-clamp-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{task.title}</p>
+   380→          {task.isMilestone && (
+   381→            <ArrowUpCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+   382→          )}
+   383→        </div>
+   384→        {task.description && (
+   385→          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{task.description}</p>
+   386→        )}
+   387→        <div className="flex items-center gap-2 flex-wrap mb-2">
+   388→          <Badge variant="outline" className={cn('text-[10px]', priorityColor[task.priority] || '')}>
+   389→            {task.priority}
+   390→          </Badge>
+   391→          {task.dueDate && (
+   392→            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+   393→              <CalendarDays className="h-3 w-3" />{formatDate(task.dueDate)}
+   394→            </span>
+   395→          )}
+   396→        </div>
+   397→        <div className="flex items-center justify-between">
+   398→          <div className="flex items-center gap-1.5">
+   399→            <Avatar className="h-5 w-5">
+   400→              <AvatarFallback className="text-[8px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+   401→                {getMemberName(task.assigneeId).split(' ').map((n) => n[0]).join('').slice(0, 2)}
+   402→              </AvatarFallback>
+   403→            </Avatar>
+   404→            <span className="text-[10px] text-muted-foreground truncate max-w-20">{getMemberName(task.assigneeId)}</span>
+   405→          </div>
+   406→          <Progress value={task.progress} className="h-1 w-10" />
+   407→        </div>
+   408→      </CardContent>
+   409→    </Card>
+   410→  )
+   411→
+   412→  return (
+   413→    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+   414→      {/* Header */}
+   415→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+   416→        <div>
+   417→          <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+   418→          <p className="text-muted-foreground text-sm mt-1">{filtered.length} task{filtered.length !== 1 ? 's' : ''}</p>
+   419→        </div>
+   420→        <div className="flex items-center gap-2">
+   421→          <div className="flex gap-1 bg-muted rounded-lg p-1">
+   422→            <button onClick={() => setViewMode('list')} className={cn('p-2 rounded-md transition-all', viewMode === 'list' ? 'bg-card shadow-sm' : 'text-muted-foreground')}>
+   423→              <List className="h-4 w-4" />
+   424→            </button>
+   425→            <button onClick={() => setViewMode('kanban')} className={cn('p-2 rounded-md transition-all', viewMode === 'kanban' ? 'bg-card shadow-sm' : 'text-muted-foreground')}>
+   426→              <Columns3 className="h-4 w-4" />
+   427→            </button>
+   428→          </div>
+   429→          {can('create:tasks') && (
+   430→            <Button className="gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm" onClick={openCreate}>
+   431→              <Plus className="h-4 w-4" /> New Task
+   432→            </Button>
+   433→          )}
+   434→        </div>
+   435→      </div>
+   436→
+   437→      {/* Filters */}
+   438→      <div className="flex flex-col sm:flex-row gap-3">
+   439→        <div className="relative flex-1 max-w-sm">
+   440→          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+   441→          <Input placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+   442→        </div>
+   443→        <div className="flex gap-1 bg-muted rounded-lg p-1">
+   444→          {tabs.map((tab) => (
+   445→            <button
+   446→              key={tab.value}
+   447→              onClick={() => setTabFilter(tab.value)}
+   448→              className={cn(
+   449→                'px-3 py-1.5 text-sm font-medium rounded-md transition-all',
+   450→                tabFilter === tab.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+   451→              )}
+   452→            >
+   453→              {tab.label}
+   454→            </button>
+   455→          ))}
+   456→        </div>
+   457→        <div className="flex items-center gap-2">
+   458→          <Filter className="h-4 w-4 text-muted-foreground" />
+   459→          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+   460→            <SelectTrigger className="h-9 w-32">
+   461→              <SelectValue placeholder="Priority" />
+   462→            </SelectTrigger>
+   463→            <SelectContent>
+   464→              <SelectItem value="ALL">All Priority</SelectItem>
+   465→              <SelectItem value="HIGH">High</SelectItem>
+   466→              <SelectItem value="MEDIUM">Medium</SelectItem>
+   467→              <SelectItem value="LOW">Low</SelectItem>
+   468→            </SelectContent>
+   469→          </Select>
+   470→        </div>
+   471→      </div>
+   472→
+   473→      {/* Bulk Action Bar */}
+   474→      <AnimatePresence>
+   475→        {selected.size > 0 && (
+   476→          <motion.div
+   477→            initial={{ opacity: 0, y: -10 }}
+   478→            animate={{ opacity: 1, y: 0 }}
+   479→            exit={{ opacity: 0, y: -10 }}
+   480→            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-card border shadow-xl rounded-xl px-4 py-3 flex items-center gap-3"
+   481→          >
+   482→            <span className="text-sm font-medium">{selected.size} selected</span>
+   483→            <div className="h-5 w-px bg-border" />
+   484→            <Select value={bulkAction} onValueChange={setBulkAction}>
+   485→              <SelectTrigger className="h-8 w-40 text-xs">
+   486→                <SelectValue placeholder="Bulk action..." />
+   487→              </SelectTrigger>
+   488→              <SelectContent>
+   489→                <SelectItem value="status:PENDING">Set Pending</SelectItem>
+   490→                <SelectItem value="status:IN_PROGRESS">Set In Progress</SelectItem>
+   491→                <SelectItem value="status:COMPLETED">Set Completed</SelectItem>
+   492→                <SelectItem value="priority:HIGH">Set High Priority</SelectItem>
+   493→                <SelectItem value="priority:MEDIUM">Set Medium Priority</SelectItem>
+   494→                <SelectItem value="priority:LOW">Set Low Priority</SelectItem>
+   495→                <SelectItem value="delete">Delete Selected</SelectItem>
+   496→              </SelectContent>
+   497→            </Select>
+   498→            <Button size="sm" className="h-8 text-xs bg-amber-500 hover:bg-amber-600 text-white" onClick={handleBulkAction} disabled={!bulkAction}>
+   499→              Apply
+   500→            </Button>
+   501→            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setSelected(new Set()); setBulkAction('') }}>
+   502→              Clear
+   503→            </Button>
+   504→          </motion.div>
+   505→        )}
+   506→      </AnimatePresence>
+   507→
+   508→      {/* Content */}
+   509→      {loading ? (
+   510→        <div className="space-y-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
+   511→      ) : filtered.length === 0 ? (
+   512→        <div className="text-center py-16">
+   513→          <ListTodo className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
+   514→          <p className="text-muted-foreground">No tasks found</p>
+   515→        </div>
+   516→      ) : viewMode === 'kanban' ? (
+   517→        /* Kanban View */
+   518→        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+   519→          {KANBAN_COLUMNS.map((col) => {
+   520→            const colTasks = filtered.filter((t) => t.status === col.status)
+   521→            return (
+   522→              <div key={col.status} className="flex flex-col">
+   523→                <div className="flex items-center gap-2 mb-3 px-1">
+   524→                  <div className={cn('w-2.5 h-2.5 rounded-full', col.color)} />
+   525→                  <h3 className="text-sm font-semibold">{col.label}</h3>
+   526→                  <Badge variant="secondary" className="text-[10px] ml-auto">{colTasks.length}</Badge>
+   527→                </div>
+   528→                <div className="space-y-2 flex-1 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
+   529→                  {colTasks.length === 0 ? (
+   530→                    <div className="border border-dashed rounded-xl p-4 text-center">
+   531→                      <p className="text-xs text-muted-foreground">No tasks</p>
+   532→                    </div>
+   533→                  ) : (
+   534→                    colTasks.map(renderKanbanCard)
+   535→                  )}
+   536→                </div>
+   537→              </div>
+   538→            )
+   539→          })}
+   540→        </div>
+   541→      ) : (
+   542→        /* List View */
+   543→        <div className="space-y-2">
+   544→          {/* Select All Header */}
+   545→          <div className="flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground">
+   546→            <Checkbox
+   547→              checked={filtered.length > 0 && selected.size === filtered.length}
+   548→              onCheckedChange={toggleSelectAll}
+   549→            />
+   550→            <span className="font-medium">Select All</span>
+   551→            <span className="ml-auto">{selected.size > 0 ? `${selected.size} selected` : `${filtered.length} tasks`}</span>
+   552→          </div>
+   553→          {filtered.map(renderTaskRow)}
+   554→        </div>
+   555→      )}
+   556→
+   557→      {/* Create/Edit Dialog */}
+   558→      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+   559→        <DialogContent className="max-w-lg">
+   560→          <DialogHeader>
+   561→            <DialogTitle>{editingTask ? 'Edit Task' : 'Create New Task'}</DialogTitle>
+   562→            <DialogDescription>{editingTask ? 'Update task details.' : 'Fill in the details to create a new task.'}</DialogDescription>
+   563→          </DialogHeader>
+   564→          <div className="space-y-4 py-2">
+   565→            <div className="space-y-2">
+   566→              <Label htmlFor="task-title">Title *</Label>
+   567→              <Input id="task-title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Task title" />
+   568→            </div>
+   569→            <div className="space-y-2">
+   570→              <Label htmlFor="task-desc">Description</Label>
+   571→              <Textarea id="task-desc" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Task description..." rows={3} />
+   572→            </div>
+   573→            <div className="grid grid-cols-2 gap-4">
+   574→              <div className="space-y-2">
+   575→                <Label htmlFor="task-project">Project *</Label>
+   576→                <Select value={form.projectId} onValueChange={(v) => setForm({ ...form, projectId: v })}>
+   577→                  <SelectTrigger id="task-project"><SelectValue placeholder="Select project" /></SelectTrigger>
+   578→                  <SelectContent>
+   579→                    {projects.map((p) => (
+   580→                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+   581→                    ))}
+   582→                  </SelectContent>
+   583→                </Select>
+   584→              </div>
+   585→              <div className="space-y-2">
+   586→                <Label htmlFor="task-assignee">Assignee</Label>
+   587→                <Select value={form.assigneeId} onValueChange={(v) => setForm({ ...form, assigneeId: v })}>
+   588→                  <SelectTrigger id="task-assignee"><SelectValue placeholder="Unassigned" /></SelectTrigger>
+   589→                  <SelectContent>
+   590→                    <SelectItem value="none">Unassigned</SelectItem>
+   591→                    {teamMembers.map((m) => (
+   592→                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+   593→                    ))}
+   594→                  </SelectContent>
+   595→                </Select>
+   596→              </div>
+   597→            </div>
+   598→            <div className="grid grid-cols-2 gap-4">
+   599→              <div className="space-y-2">
+   600→                <Label htmlFor="task-status">Status</Label>
+   601→                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+   602→                  <SelectTrigger id="task-status"><SelectValue /></SelectTrigger>
+   603→                  <SelectContent>
+   604→                    <SelectItem value="PENDING">Pending</SelectItem>
+   605→                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+   606→                    <SelectItem value="COMPLETED">Completed</SelectItem>
+   607→                    <SelectItem value="ON_HOLD">On Hold</SelectItem>
+   608→                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+   609→                  </SelectContent>
+   610→                </Select>
+   611→              </div>
+   612→              <div className="space-y-2">
+   613→                <Label htmlFor="task-priority">Priority</Label>
+   614→                <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
+   615→                  <SelectTrigger id="task-priority"><SelectValue /></SelectTrigger>
+   616→                  <SelectContent>
+   617→                    <SelectItem value="LOW">Low</SelectItem>
+   618→                    <SelectItem value="MEDIUM">Medium</SelectItem>
+   619→                    <SelectItem value="HIGH">High</SelectItem>
+   620→                  </SelectContent>
+   621→                </Select>
+   622→              </div>
+   623→            </div>
+   624→            <div className="grid grid-cols-2 gap-4">
+   625→              <div className="space-y-2">
+   626→                <Label htmlFor="task-due">Due Date</Label>
+   627→                <Input id="task-due" type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+   628→              </div>
+   629→              <div className="space-y-2">
+   630→                <Label htmlFor="task-hours">Est. Hours</Label>
+   631→                <Input id="task-hours" type="number" value={form.estimatedHours} onChange={(e) => setForm({ ...form, estimatedHours: e.target.value })} placeholder="0" />
+   632→              </div>
+   633→            </div>
+   634→          </div>
+   635→          <DialogFooter className="pt-4 border-t">
+   636→            <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+   637→            <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white" onClick={handleSave} disabled={saving}>
+   638→              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+   639→              {editingTask ? 'Update Task' : 'Create Task'}
+   640→            </Button>
+   641→          </DialogFooter>
+   642→        </DialogContent>
+   643→      </Dialog>
+   644→
+   645→      {/* Delete Dialog */}
+   646→      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+   647→        <DialogContent className="max-w-sm">
+   648→          <DialogHeader>
+   649→            <DialogTitle>Delete Task</DialogTitle>
+   650→            <DialogDescription>
+   651→              Are you sure you want to delete &quot;{deletingTask?.title}&quot;?
+   652→            </DialogDescription>
+   653→          </DialogHeader>
+   654→          <DialogFooter>
+   655→            <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+   656→            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+   657→              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+   658→              Delete
+   659→            </Button>
+   660→          </DialogFooter>
+   661→        </DialogContent>
+   662→      </Dialog>
+   663→    </div>
+   664→  )
+   665→}
+   666→
+   667→

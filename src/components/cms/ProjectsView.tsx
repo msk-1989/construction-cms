@@ -94,7 +94,8 @@ export function ProjectsView() {
       const res = await globalThis.fetch(`/api/projects?${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
-        setProjects(Array.isArray(data) ? data : data.projects || [])
+        const d = data.data || data
+        setProjects(Array.isArray(d) ? d : d.projects || [])
       }
     } catch {
       toast.error('Failed to load projects')

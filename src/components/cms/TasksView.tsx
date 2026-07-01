@@ -115,7 +115,8 @@ export function TasksView() {
       const res = await globalThis.fetch(`/api/tasks?${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
-        setTasks(Array.isArray(data) ? data : data.tasks || [])
+        const d = data.data || data
+        setTasks(Array.isArray(d) ? d : d.tasks || [])
       }
     } catch {
       toast.error('Failed to load tasks')
@@ -132,11 +133,13 @@ export function TasksView() {
       ])
       if (pRes.ok) {
         const data = await pRes.json()
-        setProjects(Array.isArray(data) ? data : data.projects || [])
+        const d = data.data || data
+        setProjects(Array.isArray(d) ? d : d.projects || [])
       }
       if (tRes.ok) {
         const data = await tRes.json()
-        const members = Array.isArray(data) ? data : data.users || []
+        const d = data.data || data
+        const members = Array.isArray(d) ? d : d.users || []
         setTeamMembers(members.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })))
       }
     } catch {
