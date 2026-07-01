@@ -26,7 +26,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
@@ -934,14 +933,14 @@ export function Sidebar() {
         <Separator />
 
         {/* Nav Items */}
-        <ScrollArea className="flex-1 py-3">
+        <div className="flex-1 py-3 overflow-y-auto sidebar-scroll min-h-0">
           {sections.map((section, idx) => (
             <div key={section.label || idx}>
               {idx > 0 && <Separator className="my-2 mx-3" />}
               {renderNavSection(section, collapsed)}
             </div>
           ))}
-        </ScrollArea>
+        </div>
 
         <Separator />
 
