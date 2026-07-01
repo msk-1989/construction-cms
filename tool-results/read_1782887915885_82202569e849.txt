@@ -1,0 +1,863 @@
+     1→generator client {
+     2→  provider = "prisma-client-js"
+     3→}
+     4→
+     5→datasource db {
+     6→  provider = "sqlite"
+     7→  url      = env("DATABASE_URL")
+     8→}
+     9→
+    10→// ========================
+    11→// Core Models
+    12→// ========================
+    13→
+    14→model User {
+    15→  id           String   @id @default(cuid())
+    16→  email        String   @unique
+    17→  password     String
+    18→  name         String
+    19→  role         String   @default("MEMBER")
+    20→  avatar       String?
+    21→  phone        String?
+    22→  company      String?
+    23→  employeeId   String?
+    24→  position     String?
+    25→  department   String?
+    26→  status       String   @default("ACTIVE")
+    27→  createdAt    DateTime @default(now())
+    28→  updatedAt    DateTime @updatedAt
+    29→
+    30→  // Core relations
+    31→  projectMemberships    ProjectMember[]
+    32→  assignedTasks         Task[]            @relation("TaskAssignee")
+    33→  createdProjects       Project[]         @relation("ProjectCreator")
+    34→  managedProjects       Project[]         @relation("ProjectManager")
+    35→  engineeredProjects    Project[]         @relation("ProjectEngineer")
+    36→  safetyOfficerProjects Project[]         @relation("ProjectSafetyOfficer")
+    37→  createdTasks          Task[]            @relation("TaskCreator")
+    38→  comments              Comment[]
+    39→  timeEntries           TimeEntry[]
+    40→  uploadedAttachments   Attachment[]       @relation("AttachmentUploader")
+    41→  notifications         Notification[]
+    42→  approvedExpenses      Expense[]         @relation("ExpenseApprover")
+    43→  createdQuotations     Quotation[]       @relation("QuotationCreator")
+    44→  approvedQuotations    Quotation[]       @relation("QuotationApprover")
+    45→  createdPurchaseOrders PurchaseOrder[]   @relation("POCreator")
+    46→  approvedPurchaseOrders PurchaseOrder[]  @relation("POApprover")
+    47→  qualityCheckedGrvs    GrvVoucher[]      @relation("GRVQualityChecker")
+    48→  verifiedGrvs          GrvVoucher[]      @relation("GRVVerifier")
+    49→  approvedPayments      PaymentVoucher[]  @relation("PaymentApprover")
+    50→  createdPayments       PaymentVoucher[]  @relation("PaymentCreator")
+    51→  createdReceipts       ReceiptVoucher[]
+    52→  createdContracts      Contract[]        @relation("ContractCreator")
+    53→  approvedContracts     Contract[]        @relation("ContractApprover")
+    54→  rfisAssigned          RFI[]             @relation("RFIAssignee")
+    55→  createdRfis           RFI[]             @relation("RFICreator")
+    56→  submittedSubmittals   Submittal[]       @relation("SubmittalSubmitter")
+    57→  reviewedSubmittals    Submittal[]       @relation("SubmittalReviewer")
+    58→  createdDailyLogs      DailyLog[]
+    59→  punchItemsAssigned    PunchItem[]       @relation("PunchAssignee")
+    60→  createdPunchItems     PunchItem[]
+    61→  changeOrdersRequested ChangeOrder[]     @relation("CORequester")
+    62→  changeOrdersApproved  ChangeOrder[]     @relation("COApprover")
+    63→  uploadedDocuments     Document[]
+    64→  uploadedPhotos        PhotoDocumentation[]
+    65→  approvedRetainages    RetainageWaiver[] @relation("RetainageApprover")
+    66→  createdTaskTemplates  TaskTemplate[]
+    67→  createdRecurringTasks  RecurringTask[]     @relation("RecurringTaskCreator")
+    68→  assignedRecurringTasks RecurringTask[]     @relation("RecurringTaskAssignee")
+    69→  chatMessages           ChatMessage[]
+    70→  activityLogs          ActivityLog[]
+    71→}
+    72→
+    73→model Project {
+    74→  id               String   @id @default(cuid())
+    75→  name             String
+    76→  code             String   @unique
+    77→  description      String?
+    78→  status           String   @default("PLANNING")
+    79→  progress         Float    @default(0)
+    80→  startDate        String?
+    81→  endDate          String?
+    82→  budget           Float?
+    83→  createdAt        DateTime @default(now())
+    84→  updatedAt        DateTime @updatedAt
+    85→  createdById      String
+    86→  projectType      String?
+    87→  contractType     String?
+    88→  siteAddress      String?
+    89→  siteContact      String?
+    90→  siteEmail        String?
+    91→  sitePhone        String?
+    92→  totalWorkforce   Int?
+    93→  dailyLaborCount  Int?
+    94→  managerId        String?
+    95→  engineerId       String?
+    96→  safetyOfficerId  String?
+    97→  boqStatus        String   @default("DRAFT")
+    98→  boqVersion       Int      @default(1)
+    99→
+   100→  // Relations
+   101→  createdBy        User                 @relation("ProjectCreator", fields: [createdById], references: [id])
+   102→  manager          User?                @relation("ProjectManager", fields: [managerId], references: [id])
+   103→  engineer         User?                @relation("ProjectEngineer", fields: [engineerId], references: [id])
+   104→  safetyOfficer    User?                @relation("ProjectSafetyOfficer", fields: [safetyOfficerId], references: [id])
+   105→  members          ProjectMember[]
+   106→  tasks            Task[]
+   107→  comments         Comment[]
+   108→  labels           Label[]
+   109→  attachments      Attachment[]
+   110→  budgetCategories BudgetCategory[]
+   111→  expenses         Expense[]
+   112→  subcontractorProjects SubcontractorProject[]
+   113→  boqCategories    BoqCategory[]
+   114→  boqItems         BoqItem[]
+   115→  quotations       Quotation[]
+   116→  purchaseOrders   PurchaseOrder[]
+   117→  grvVouchers      GrvVoucher[]
+   118→  paymentVouchers  PaymentVoucher[]
+   119→  receiptVouchers  ReceiptVoucher[]
+   120→  contracts        Contract[]
+   121→  milestones       Milestone[]
+   122→  documents        Document[]
+   123→  rfis             RFI[]
+   124→  submittals       Submittal[]
+   125→  dailyLogs        DailyLog[]
+   126→  punchItems       PunchItem[]
+   127→  changeOrders     ChangeOrder[]
+   128→  materials        Material[]
+   129→  photoDocs        PhotoDocumentation[]
+   130→  retainageWaivers RetainageWaiver[]
+   131→  taskTemplates    TaskTemplate[]
+   132→  recurringTasks   RecurringTask[]
+   133→  chatMessages     ChatMessage[]
+   134→  activityLogs     ActivityLog[]
+   135→}
+   136→
+   137→model ProjectMember {
+   138→  id        String   @id @default(cuid())
+   139→  userId    String
+   140→  projectId String
+   141→  role      String
+   142→  position  String?
+   143→  joinedAt  DateTime @default(now())
+   144→
+   145→  user    User    @relation(fields: [userId], references: [id])
+   146→  project Project @relation(fields: [projectId], references: [id])
+   147→
+   148→  @@unique([userId, projectId])
+   149→}
+   150→
+   151→model Task {
+   152→  id            String    @id @default(cuid())
+   153→  title         String
+   154→  description   String?
+   155→  status        String    @default("PENDING")
+   156→  priority      String    @default("MEDIUM")
+   157→  progress      Float     @default(0)
+   158→  dueDate       String?
+   159→  completedAt   String?
+   160→  estimatedHours Float?
+   161→  billable      Boolean   @default(true)
+   162→  isMilestone   Boolean   @default(false)
+   163→  createdAt     DateTime  @default(now())
+   164→  updatedAt     DateTime  @updatedAt
+   165→
+   166→  projectId   String
+   167→  project     Project @relation(fields: [projectId], references: [id])
+   168→  assigneeId  String?
+   169→  assignee    User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+   170→  createdById String
+   171→  createdBy   User    @relation("TaskCreator", fields: [createdById], references: [id])
+   172→
+   173→  subtasks       Subtask[]
+   174→  comments       Comment[]
+   175→  labels         TaskLabel[]
+   176→  timeEntries    TimeEntry[]
+   177→  attachments    Attachment[]
+   178→  dependencies   TaskDependency[]       @relation("TaskDependsOn")
+   179→  dependedOnBy   TaskDependency[]       @relation("TaskDependedBy")
+   180→  punchItems     PunchItem[]
+   181→  photoDocs      PhotoDocumentation[]
+   182→}
+   183→
+   184→model Subtask {
+   185→  id        String   @id @default(cuid())
+   186→  title     String
+   187→  completed Boolean  @default(false)
+   188→  taskId    String
+   189→  createdAt DateTime @default(now())
+   190→
+   191→  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+   192→}
+   193→
+   194→model Comment {
+   195→  id        String   @id @default(cuid())
+   196→  content   String
+   197→  mentions  String?
+   198→  parentId  String?
+   199→  taskId    String?
+   200→  projectId String?
+   201→  userId    String
+   202→  userName  String
+   203→  createdAt DateTime @default(now())
+   204→  updatedAt DateTime @updatedAt
+   205→
+   206→  user    User  @relation(fields: [userId], references: [id])
+   207→  project Project? @relation(fields: [projectId], references: [id])
+   208→  task    Task?   @relation(fields: [taskId], references: [id])
+   209→
+   210→  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+   211→  replies  Comment[] @relation("CommentReplies")
+   212→}
+   213→
+   214→model Label {
+   215→  id        String   @id @default(cuid())
+   216→  name      String
+   217→  color     String
+   218→  projectId String?
+   219→  createdAt DateTime @default(now())
+   220→
+   221→  project Project?  @relation(fields: [projectId], references: [id])
+   222→  tasks   TaskLabel[]
+   223→}
+   224→
+   225→model TaskLabel {
+   226→  id       String @id @default(cuid())
+   227→  taskId   String
+   228→  labelId  String
+   229→
+   230→  task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+   231→  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+   232→
+   233→  @@unique([taskId, labelId])
+   234→}
+   235→
+   236→model TimeEntry {
+   237→  id          String   @id @default(cuid())
+   238→  description String?
+   239→  duration    Float
+   240→  date        String
+   241→  taskId      String
+   242→  userId      String
+   243→  createdAt   DateTime @default(now())
+   244→
+   245→  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+   246→  user User @relation(fields: [userId], references: [id])
+   247→}
+   248→
+   249→model Attachment {
+   250→  id           String   @id @default(cuid())
+   251→  filename     String
+   252→  fileType     String
+   253→  fileSize     Int
+   254→  url          String
+   255→  taskId       String?
+   256→  projectId    String?
+   257→  uploadedById String
+   258→  createdAt    DateTime @default(now())
+   259→
+   260→  task       Task?  @relation(fields: [taskId], references: [id])
+   261→  project    Project? @relation(fields: [projectId], references: [id])
+   262→  uploadedBy User   @relation("AttachmentUploader", fields: [uploadedById], references: [id])
+   263→}
+   264→
+   265→model TaskDependency {
+   266→  id          String   @id @default(cuid())
+   267→  taskId      String
+   268→  dependsOnId String
+   269→  type        String
+   270→  createdAt   DateTime @default(now())
+   271→
+   272→  task      Task @relation("TaskDependsOn", fields: [taskId], references: [id], onDelete: Cascade)
+   273→  dependsOn Task @relation("TaskDependedBy", fields: [dependsOnId], references: [id], onDelete: Cascade)
+   274→
+   275→  @@unique([taskId, dependsOnId])
+   276→}
+   277→
+   278→model Notification {
+   279→  id         String   @id @default(cuid())
+   280→  type       String
+   281→  title      String
+   282→  message    String
+   283→  read       Boolean  @default(false)
+   284→  userId     String
+   285→  relatedId  String?
+   286→  relatedType String?
+   287→  createdAt  DateTime @default(now())
+   288→
+   289→  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+   290→}
+   291→
+   292→// ========================
+   293→// Budget & Finance Models
+   294→// ========================
+   295→
+   296→model BudgetCategory {
+   297→  id        String   @id @default(cuid())
+   298→  name      String
+   299→  allocated Float
+   300→  projectId String
+   301→  createdAt DateTime @default(now())
+   302→  updatedAt DateTime @updatedAt
+   303→
+   304→  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   305→  expenses Expense[]
+   306→}
+   307→
+   308→model Expense {
+   309→  id               String    @id @default(cuid())
+   310→  description      String
+   311→  amount           Float
+   312→  date             String
+   313→  type             String
+   314→  projectId        String
+   315→  budgetCategoryId String?
+   316→  approvedById     String?
+   317→  approvedAt       String?
+   318→  createdAt        DateTime  @default(now())
+   319→  updatedAt        DateTime  @updatedAt
+   320→
+   321→  project         Project          @relation(fields: [projectId], references: [id])
+   322→  budgetCategory  BudgetCategory?  @relation(fields: [budgetCategoryId], references: [id])
+   323→  approvedBy      User?            @relation("ExpenseApprover", fields: [approvedById], references: [id])
+   324→}
+   325→
+   326→model Subcontractor {
+   327→  id              String    @id @default(cuid())
+   328→  name            String
+   329→  company         String
+   330→  email           String
+   331→  phone           String?
+   332→  contractorType  String?
+   333→  registrationNo  String?
+   334→  gst             String?
+   335→  pan             String?
+   336→  license         String?
+   337→  licenseExpiry   String?
+   338→  insuranceExpiry String?
+   339→  specialty       String?
+   340→  rating          Float     @default(0)
+   341→  preQualified    Boolean   @default(false)
+   342→  notes           String?
+   343→  createdAt       DateTime  @default(now())
+   344→  updatedAt       DateTime  @updatedAt
+   345→
+   346→  projectLinks  SubcontractorProject[]
+   347→  quotations    Quotation[]
+   348→  purchaseOrders PurchaseOrder[]
+   349→  contracts     Contract[]
+   350→}
+   351→
+   352→model SubcontractorProject {
+   353→  id              String   @id @default(cuid())
+   354→  subcontractorId String
+   355→  projectId       String
+   356→  contractAmount  Float?
+   357→  startDate       String?
+   358→  endDate         String?
+   359→  status          String
+   360→  createdAt       DateTime @default(now())
+   361→
+   362→  subcontractor Subcontractor @relation(fields: [subcontractorId], references: [id], onDelete: Cascade)
+   363→  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   364→
+   365→  @@unique([subcontractorId, projectId])
+   366→}
+   367→
+   368→model BoqCategory {
+   369→  id          String   @id @default(cuid())
+   370→  name        String
+   371→  description String?
+   372→  sortOrder   Int      @default(0)
+   373→  version     Int      @default(1)
+   374→  projectId   String
+   375→  createdAt   DateTime @default(now())
+   376→  updatedAt   DateTime @updatedAt
+   377→
+   378→  project Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   379→  items   BoqItem[]
+   380→}
+   381→
+   382→model BoqItem {
+   383→  id          String   @id @default(cuid())
+   384→  itemNo      String
+   385→  description String
+   386→  unit        String
+   387→  quantity    Float
+   388→  unitRate    Float
+   389→  amount      Float
+   390→  actualQty   Float?
+   391→  actualRate  Float?
+   392→  actualAmount Float?
+   393→  status      String   @default("PENDING")
+   394→  categoryId  String
+   395→  projectId   String
+   396→  createdAt   DateTime @default(now())
+   397→  updatedAt   DateTime @updatedAt
+   398→
+   399→  category BoqCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+   400→  project  Project     @relation(fields: [projectId], references: [id])
+   401→}
+   402→
+   403→model Quotation {
+   404→  id           String    @id @default(cuid())
+   405→  referenceNo  String
+   406→  vendorId     String?
+   407→  title        String
+   408→  description  String?
+   409→  status       String    @default("DRAFT")
+   410→  subtotal     Float
+   411→  tax          Float
+   412→  total        Float
+   413→  validUntil   String?
+   414→  terms        String?
+   415→  projectId    String
+   416→  createdById  String
+   417→  approvedById String?
+   418→  approvedAt   String?
+   419→  createdAt    DateTime  @default(now())
+   420→  updatedAt    DateTime  @updatedAt
+   421→
+   422→  vendor    Subcontractor? @relation(fields: [vendorId], references: [id])
+   423→  project   Project        @relation(fields: [projectId], references: [id])
+   424→  createdBy User           @relation("QuotationCreator", fields: [createdById], references: [id])
+   425→  approvedBy User?          @relation("QuotationApprover", fields: [approvedById], references: [id])
+   426→  items     QuotationItem[]
+   427→  purchaseOrders PurchaseOrder[]
+   428→}
+   429→
+   430→model QuotationItem {
+   431→  id          String   @id @default(cuid())
+   432→  description String
+   433→  unit        String
+   434→  quantity    Float
+   435→  unitRate    Float
+   436→  amount      Float
+   437→  quotationId String
+   438→  createdAt   DateTime @default(now())
+   439→
+   440→  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+   441→}
+   442→
+   443→model PurchaseOrder {
+   444→  id           String    @id @default(cuid())
+   445→  poNumber     String
+   446→  vendorId     String?
+   447→  title        String
+   448→  description  String?
+   449→  status       String    @default("DRAFT")
+   450→  projectId    String
+   451→  quotationId  String?
+   452→  subtotal     Float
+   453→  tax          Float
+   454→  total        Float
+   455→  deliveryDate String?
+   456→  terms        String?
+   457→  approvedById String?
+   458→  approvedAt   String?
+   459→  issuedAt     String?
+   460→  closedAt     String?
+   461→  createdById  String
+   462→  createdAt    DateTime  @default(now())
+   463→  updatedAt    DateTime  @updatedAt
+   464→
+   465→  vendor      Subcontractor?  @relation(fields: [vendorId], references: [id])
+   466→  project     Project         @relation(fields: [projectId], references: [id])
+   467→  quotation   Quotation?      @relation(fields: [quotationId], references: [id])
+   468→  createdBy   User            @relation("POCreator", fields: [createdById], references: [id])
+   469→  approvedBy  User?           @relation("POApprover", fields: [approvedById], references: [id])
+   470→  items       PurchaseOrderItem[]
+   471→  grvVouchers GrvVoucher[]
+   472→  paymentVouchers PaymentVoucher[]
+   473→}
+   474→
+   475→model PurchaseOrderItem {
+   476→  id          String  @id @default(cuid())
+   477→  description String
+   478→  unit        String
+   479→  orderedQty  Float
+   480→  unitRate    Float
+   481→  amount      Float
+   482→  receivedQty Float   @default(0)
+   483→  poId        String
+   484→  createdAt   DateTime @default(now())
+   485→
+   486→  po        PurchaseOrder    @relation(fields: [poId], references: [id], onDelete: Cascade)
+   487→  grvItems  GrvItem[]
+   488→}
+   489→
+   490→model GrvVoucher {
+   491→  id                String    @id @default(cuid())
+   492→  grvNumber         String
+   493→  poId              String?
+   494→  title             String
+   495→  status            String    @default("DRAFT")
+   496→  projectId         String
+   497→  totalItems        Int
+   498→  notes             String?
+   499→  invoiceNo         String?
+   500→  qualityCheckedById String?
+   501→  qualityCheckedAt  String?
+   502→  verifiedById      String?
+   503→  verifiedAt        String?
+   504→  createdAt         DateTime  @default(now())
+   505→  updatedAt         DateTime  @updatedAt
+   506→
+   507→  po              PurchaseOrder? @relation(fields: [poId], references: [id])
+   508→  project         Project        @relation(fields: [projectId], references: [id])
+   509→  qualityCheckedBy User?          @relation("GRVQualityChecker", fields: [qualityCheckedById], references: [id])
+   510→  verifiedBy      User?          @relation("GRVVerifier", fields: [verifiedById], references: [id])
+   511→  items           GrvItem[]
+   512→}
+   513→
+   514→model GrvItem {
+   515→  id          String   @id @default(cuid())
+   516→  poItemId    String?
+   517→  description String
+   518→  unit        String
+   519→  orderedQty  Float
+   520→  receivedQty Float
+   521→  rejectedQty Float
+   522→  unitRate    Float
+   523→  amount      Float
+   524→  qualityStatus String
+   525→  grvId       String
+   526→  createdAt   DateTime @default(now())
+   527→
+   528→  poItem    PurchaseOrderItem? @relation(fields: [poItemId], references: [id])
+   529→  grv       GrvVoucher         @relation(fields: [grvId], references: [id], onDelete: Cascade)
+   530→}
+   531→
+   532→model PaymentVoucher {
+   533→  id             String   @id @default(cuid())
+   534→  voucherNo      String
+   535→  title          String
+   536→  paymentType    String
+   537→  status         String   @default("DRAFT")
+   538→  amount         Float
+   539→  payeeName      String
+   540→  paymentMode    String
+   541→  bankReference  String?
+   542→  projectId      String
+   543→  poId           String?
+   544→  contractId     String?
+   545→  description    String?
+   546→  certificateNo  String?
+   547→  approvedById   String?
+   548→  approvedAt     String?
+   549→  paidAt         String?
+   550→  createdById    String
+   551→  createdAt      DateTime @default(now())
+   552→  updatedAt      DateTime @updatedAt
+   553→
+   554→  project    Project?       @relation(fields: [projectId], references: [id])
+   555→  po         PurchaseOrder? @relation(fields: [poId], references: [id])
+   556→  contract   Contract?      @relation(fields: [contractId], references: [id])
+   557→  approvedBy User?          @relation("PaymentApprover", fields: [approvedById], references: [id])
+   558→  createdBy  User           @relation("PaymentCreator", fields: [createdById], references: [id])
+   559→}
+   560→
+   561→model ReceiptVoucher {
+   562→  id             String   @id @default(cuid())
+   563→  voucherNo      String
+   564→  title          String
+   565→  amount         Float
+   566→  receivedFrom   String
+   567→  paymentMode    String
+   568→  bankReference  String?
+   569→  projectId      String
+   570→  description    String?
+   571→  receivedAt     String?
+   572→  createdById    String
+   573→  createdAt      DateTime @default(now())
+   574→  updatedAt      DateTime @updatedAt
+   575→
+   576→  project     Project @relation(fields: [projectId], references: [id])
+   577→  createdBy   User    @relation(fields: [createdById], references: [id])
+   578→}
+   579→
+   580→model Contract {
+   581→  id               String   @id @default(cuid())
+   582→  contractNo       String
+   583→  title            String
+   584→  contractType     String
+   585→  status           String   @default("DRAFT")
+   586→  value            Float
+   587→  retainagePercent Float    @default(10)
+   588→  startDate        String?
+   589→  endDate          String?
+   590→  description      String?
+   591→  terms            String?
+   592→  projectId        String
+   593→  vendorId         String?
+   594→  createdById      String
+   595→  approvedById     String?
+   596→  approvedAt       String?
+   597→  closedAt         String?
+   598→  createdAt        DateTime @default(now())
+   599→  updatedAt        DateTime @updatedAt
+   600→
+   601→  project    Project        @relation(fields: [projectId], references: [id])
+   602→  vendor     Subcontractor? @relation(fields: [vendorId], references: [id])
+   603→  createdBy  User           @relation("ContractCreator", fields: [createdById], references: [id])
+   604→  approvedBy User?          @relation("ContractApprover", fields: [approvedById], references: [id])
+   605→  paymentVouchers PaymentVoucher[]
+   606→  retainageWaivers  RetainageWaiver[]
+   607→}
+   608→
+   609→// ========================
+   610→// Project Management Models
+   611→// ========================
+   612→
+   613→model Milestone {
+   614→  id          String   @id @default(cuid())
+   615→  title       String
+   616→  description String?
+   617→  date        String?
+   618→  status      String
+   619→  projectId   String
+   620→  createdAt   DateTime @default(now())
+   621→  updatedAt   DateTime @updatedAt
+   622→
+   623→  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   624→}
+   625→
+   626→model Document {
+   627→  id          String   @id @default(cuid())
+   628→  title       String
+   629→  filename    String
+   630→  fileType    String
+   631→  fileSize    Int
+   632→  url         String
+   633→  category    String
+   634→  version     Int      @default(1)
+   635→  description String?
+   636→  projectId   String
+   637→  uploadedById String
+   638→  createdAt   DateTime @default(now())
+   639→  updatedAt   DateTime @updatedAt
+   640→
+   641→  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   642→  uploadedBy  User    @relation(fields: [uploadedById], references: [id])
+   643→}
+   644→
+   645→model RFI {
+   646→  id          String   @id @default(cuid())
+   647→  title       String
+   648→  description String
+   649→  status      String   @default("OPEN")
+   650→  priority    String
+   651→  dueDate     String?
+   652→  response    String?
+   653→  projectId   String
+   654→  assignedToId String?
+   655→  createdById  String
+   656→  createdAt   DateTime @default(now())
+   657→  updatedAt   DateTime @updatedAt
+   658→
+   659→  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   660→  assignedTo User?   @relation("RFIAssignee", fields: [assignedToId], references: [id])
+   661→  createdBy  User    @relation("RFICreator", fields: [createdById], references: [id])
+   662→}
+   663→
+   664→model Submittal {
+   665→  id           String   @id @default(cuid())
+   666→  title        String
+   667→  description  String
+   668→  status       String   @default("PENDING")
+   669→  dueDate      String?
+   670→  reviewNotes  String?
+   671→  projectId    String
+   672→  submittedById String?
+   673→  reviewedById  String?
+   674→  createdAt    DateTime @default(now())
+   675→  updatedAt    DateTime @updatedAt
+   676→
+   677→  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   678→  submittedBy User?   @relation("SubmittalSubmitter", fields: [submittedById], references: [id])
+   679→  reviewedBy  User?   @relation("SubmittalReviewer", fields: [reviewedById], references: [id])
+   680→}
+   681→
+   682→model DailyLog {
+   683→  id           String   @id @default(cuid())
+   684→  date         String
+   685→  weather      String?
+   686→  temperature  String?
+   687→  crewSize     Int?
+   688→  notes        String?
+   689→  safetyNotes  String?
+   690→  projectId    String
+   691→  createdById  String
+   692→  createdAt    DateTime @default(now())
+   693→  updatedAt    DateTime @updatedAt
+   694→
+   695→  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   696→  createdBy  User    @relation(fields: [createdById], references: [id])
+   697→}
+   698→
+   699→model PunchItem {
+   700→  id           String   @id @default(cuid())
+   701→  title        String
+   702→  description  String?
+   703→  status       String   @default("OPEN")
+   704→  priority     String
+   705→  location     String?
+   706→  dueDate      String?
+   707→  photoUrl     String?
+   708→  projectId    String
+   709→  taskId       String?
+   710→  assignedToId String?
+   711→  createdById  String
+   712→  completedAt  String?
+   713→  createdAt    DateTime @default(now())
+   714→  updatedAt    DateTime @updatedAt
+   715→
+   716→  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   717→  task        Task?   @relation(fields: [taskId], references: [id])
+   718→  assignedTo  User?   @relation("PunchAssignee", fields: [assignedToId], references: [id])
+   719→  createdBy   User    @relation(fields: [createdById], references: [id])
+   720→}
+   721→
+   722→model ChangeOrder {
+   723→  id           String   @id @default(cuid())
+   724→  title        String
+   725→  description  String
+   726→  status       String   @default("PROPOSED")
+   727→  costImpact   Float
+   728→  scheduleImpact String?
+   729→  reason       String?
+   730→  projectId    String
+   731→  requestedById String?
+   732→  approvedById  String?
+   733→  approvedAt    String?
+   734→  createdAt    DateTime @default(now())
+   735→  updatedAt    DateTime @updatedAt
+   736→
+   737→  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   738→  requestedBy User?   @relation("CORequester", fields: [requestedById], references: [id])
+   739→  approvedBy  User?   @relation("COApprover", fields: [approvedById], references: [id])
+   740→}
+   741→
+   742→model Material {
+   743→  id           String   @id @default(cuid())
+   744→  name         String
+   745→  quantity     Float
+   746→  unit         String
+   747→  unitCost     Float
+   748→  supplier     String?
+   749→  status       String   @default("PLANNED")
+   750→  orderedDate  String?
+   751→  deliveredDate String?
+   752→  notes        String?
+   753→  projectId    String
+   754→  createdAt    DateTime @default(now())
+   755→  updatedAt    DateTime @updatedAt
+   756→
+   757→  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   758→}
+   759→
+   760→model PhotoDocumentation {
+   761→  id          String   @id @default(cuid())
+   762→  title       String
+   763→  filename    String
+   764→  url         String
+   765→  category    String
+   766→  location    String?
+   767→  description String?
+   768→  beforeUrl   String?
+   769→  projectId   String
+   770→  taskId      String?
+   771→  uploadedById String
+   772→  createdAt   DateTime @default(now())
+   773→
+   774→  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   775→  task        Task?   @relation(fields: [taskId], references: [id])
+   776→  uploadedBy  User    @relation(fields: [uploadedById], references: [id])
+   777→}
+   778→
+   779→model RetainageWaiver {
+   780→  id               String   @id @default(cuid())
+   781→  title            String
+   782→  vendorName       String
+   783→  waiverType       String
+   784→  amount           Float
+   785→  retainagePercent Float
+   786→  status           String   @default("PENDING")
+   787→  projectId        String
+   788→  approvedById     String?
+   789→  approvedAt       String?
+   790→  notes            String?
+   791→  createdAt        DateTime @default(now())
+   792→  updatedAt        DateTime @updatedAt
+   793→
+   794→  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   795→  approvedBy  User?   @relation("RetainageApprover", fields: [approvedById], references: [id])
+   796→  contract    Contract? @relation(fields: [contractId], references: [id])
+   797→  contractId  String?
+   798→}
+   799→
+   800→model TaskTemplate {
+   801→  id             String   @id @default(cuid())
+   802→  name           String
+   803→  description    String?
+   804→  priority       String
+   805→  estimatedHours Float?
+   806→  billable       Boolean  @default(true)
+   807→  isMilestone    Boolean  @default(false)
+   808→  labels         String?
+   809→  projectId      String?
+   810→  createdById    String
+   811→  createdAt      DateTime @default(now())
+   812→  updatedAt      DateTime @updatedAt
+   813→
+   814→  project   Project? @relation(fields: [projectId], references: [id])
+   815→  createdBy User    @relation(fields: [createdById], references: [id])
+   816→}
+   817→
+   818→model RecurringTask {
+   819→  id             String   @id @default(cuid())
+   820→  title          String
+   821→  description    String?
+   822→  priority       String
+   823→  estimatedHours Float?
+   824→  projectId      String
+   825→  assigneeId     String?
+   826→  recurrenceRule String
+   827→  nextDueDate    String
+   828→  lastGenerated  String?
+   829→  enabled        Boolean  @default(true)
+   830→  createdById    String
+   831→  createdAt      DateTime @default(now())
+   832→  updatedAt      DateTime @updatedAt
+   833→
+   834→  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+   835→  assignee  User?   @relation("RecurringTaskAssignee", fields: [assigneeId], references: [id])
+   836→  createdBy User    @relation("RecurringTaskCreator", fields: [createdById], references: [id])
+   837→}
+   838→
+   839→model ChatMessage {
+   840→  id        String   @id @default(cuid())
+   841→  content   String
+   842→  type      String   @default("TEXT")
+   843→  channelId String
+   844→  userId    String
+   845→  createdAt DateTime @default(now())
+   846→
+   847→  user    User    @relation(fields: [userId], references: [id])
+   848→  project Project @relation(fields: [channelId], references: [id])
+   849→}
+   850→
+   851→model ActivityLog {
+   852→  id         String   @id @default(cuid())
+   853→  action     String
+   854→  details    String?
+   855→  userId     String
+   856→  projectId  String?
+   857→  relatedId  String?
+   858→  relatedType String?
+   859→  createdAt  DateTime @default(now())
+   860→
+   861→  user    User     @relation(fields: [userId], references: [id])
+   862→  project Project? @relation(fields: [projectId], references: [id])
+   863→}

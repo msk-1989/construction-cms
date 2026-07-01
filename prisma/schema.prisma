@@ -7,45 +7,139 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      String   @default("MEMBER")
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ========================
+// Core Models
+// ========================
 
-  projects      ProjectMember[]
-  assignedTasks Task[]          @relation("TaskAssignee")
-  createdProjects Project[]     @relation("ProjectCreator")
-  createdTasks   Task[]         @relation("TaskCreator")
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  name         String
+  role         String   @default("MEMBER")
+  avatar       String?
+  phone        String?
+  company      String?
+  employeeId   String?
+  position     String?
+  department   String?
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Core relations
+  projectMemberships    ProjectMember[]
+  assignedTasks         Task[]            @relation("TaskAssignee")
+  createdProjects       Project[]         @relation("ProjectCreator")
+  managedProjects       Project[]         @relation("ProjectManager")
+  engineeredProjects    Project[]         @relation("ProjectEngineer")
+  safetyOfficerProjects Project[]         @relation("ProjectSafetyOfficer")
+  createdTasks          Task[]            @relation("TaskCreator")
+  comments              Comment[]
+  timeEntries           TimeEntry[]
+  uploadedAttachments   Attachment[]       @relation("AttachmentUploader")
+  notifications         Notification[]
+  approvedExpenses      Expense[]         @relation("ExpenseApprover")
+  createdQuotations     Quotation[]       @relation("QuotationCreator")
+  approvedQuotations    Quotation[]       @relation("QuotationApprover")
+  createdPurchaseOrders PurchaseOrder[]   @relation("POCreator")
+  approvedPurchaseOrders PurchaseOrder[]  @relation("POApprover")
+  qualityCheckedGrvs    GrvVoucher[]      @relation("GRVQualityChecker")
+  verifiedGrvs          GrvVoucher[]      @relation("GRVVerifier")
+  approvedPayments      PaymentVoucher[]  @relation("PaymentApprover")
+  createdPayments       PaymentVoucher[]  @relation("PaymentCreator")
+  createdReceipts       ReceiptVoucher[]
+  createdContracts      Contract[]        @relation("ContractCreator")
+  approvedContracts     Contract[]        @relation("ContractApprover")
+  rfisAssigned          RFI[]             @relation("RFIAssignee")
+  createdRfis           RFI[]             @relation("RFICreator")
+  submittedSubmittals   Submittal[]       @relation("SubmittalSubmitter")
+  reviewedSubmittals    Submittal[]       @relation("SubmittalReviewer")
+  createdDailyLogs      DailyLog[]
+  punchItemsAssigned    PunchItem[]       @relation("PunchAssignee")
+  createdPunchItems     PunchItem[]
+  changeOrdersRequested ChangeOrder[]     @relation("CORequester")
+  changeOrdersApproved  ChangeOrder[]     @relation("COApprover")
+  uploadedDocuments     Document[]
+  uploadedPhotos        PhotoDocumentation[]
+  approvedRetainages    RetainageWaiver[] @relation("RetainageApprover")
+  createdTaskTemplates  TaskTemplate[]
+  createdRecurringTasks  RecurringTask[]     @relation("RecurringTaskCreator")
+  assignedRecurringTasks RecurringTask[]     @relation("RecurringTaskAssignee")
+  chatMessages           ChatMessage[]
+  activityLogs          ActivityLog[]
 }
 
 model Project {
-  id          String   @id @default(cuid())
-  name        String
-  code        String   @unique
-  description String?
-  status      String   @default("PLANNING")
-  progress    Float    @default(0)
-  startDate   String?
-  endDate     String?
-  budget      Float?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  code             String   @unique
+  description      String?
+  status           String   @default("PLANNING")
+  progress         Float    @default(0)
+  startDate        String?
+  endDate          String?
+  budget           Float?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  createdById      String
+  projectType      String?
+  contractType     String?
+  siteAddress      String?
+  siteContact      String?
+  siteEmail        String?
+  sitePhone        String?
+  totalWorkforce   Int?
+  dailyLaborCount  Int?
+  managerId        String?
+  engineerId       String?
+  safetyOfficerId  String?
+  boqStatus        String   @default("DRAFT")
+  boqVersion       Int      @default(1)
 
-  createdById String
-  createdBy   User            @relation("ProjectCreator", fields: [createdById], references: [id])
-  members     ProjectMember[]
-  tasks       Task[]
+  // Relations
+  createdBy        User                 @relation("ProjectCreator", fields: [createdById], references: [id])
+  manager          User?                @relation("ProjectManager", fields: [managerId], references: [id])
+  engineer         User?                @relation("ProjectEngineer", fields: [engineerId], references: [id])
+  safetyOfficer    User?                @relation("ProjectSafetyOfficer", fields: [safetyOfficerId], references: [id])
+  members          ProjectMember[]
+  tasks            Task[]
+  comments         Comment[]
+  labels           Label[]
+  attachments      Attachment[]
+  budgetCategories BudgetCategory[]
+  expenses         Expense[]
+  subcontractorProjects SubcontractorProject[]
+  boqCategories    BoqCategory[]
+  boqItems         BoqItem[]
+  quotations       Quotation[]
+  purchaseOrders   PurchaseOrder[]
+  grvVouchers      GrvVoucher[]
+  paymentVouchers  PaymentVoucher[]
+  receiptVouchers  ReceiptVoucher[]
+  contracts        Contract[]
+  milestones       Milestone[]
+  documents        Document[]
+  rfis             RFI[]
+  submittals       Submittal[]
+  dailyLogs        DailyLog[]
+  punchItems       PunchItem[]
+  changeOrders     ChangeOrder[]
+  materials        Material[]
+  photoDocs        PhotoDocumentation[]
+  retainageWaivers RetainageWaiver[]
+  taskTemplates    TaskTemplate[]
+  recurringTasks   RecurringTask[]
+  chatMessages     ChatMessage[]
+  activityLogs     ActivityLog[]
 }
 
 model ProjectMember {
   id        String   @id @default(cuid())
   userId    String
   projectId String
+  role      String
+  position  String?
   joinedAt  DateTime @default(now())
 
   user    User    @relation(fields: [userId], references: [id])
@@ -55,16 +149,19 @@ model ProjectMember {
 }
 
 model Task {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  status      String   @default("PENDING")
-  priority    String   @default("MEDIUM")
-  progress    Float    @default(0)
-  dueDate     String?
-  completedAt String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  status        String    @default("PENDING")
+  priority      String    @default("MEDIUM")
+  progress      Float     @default(0)
+  dueDate       String?
+  completedAt   String?
+  estimatedHours Float?
+  billable      Boolean   @default(true)
+  isMilestone   Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   projectId   String
   project     Project @relation(fields: [projectId], references: [id])
@@ -72,4 +169,695 @@ model Task {
   assignee    User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
   createdById String
   createdBy   User    @relation("TaskCreator", fields: [createdById], references: [id])
+
+  subtasks       Subtask[]
+  comments       Comment[]
+  labels         TaskLabel[]
+  timeEntries    TimeEntry[]
+  attachments    Attachment[]
+  dependencies   TaskDependency[]       @relation("TaskDependsOn")
+  dependedOnBy   TaskDependency[]       @relation("TaskDependedBy")
+  punchItems     PunchItem[]
+  photoDocs      PhotoDocumentation[]
+}
+
+model Subtask {
+  id        String   @id @default(cuid())
+  title     String
+  completed Boolean  @default(false)
+  taskId    String
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  mentions  String?
+  parentId  String?
+  taskId    String?
+  projectId String?
+  userId    String
+  userName  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User  @relation(fields: [userId], references: [id])
+  project Project? @relation(fields: [projectId], references: [id])
+  task    Task?   @relation(fields: [taskId], references: [id])
+
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+}
+
+model Label {
+  id        String   @id @default(cuid())
+  name      String
+  color     String
+  projectId String?
+  createdAt DateTime @default(now())
+
+  project Project?  @relation(fields: [projectId], references: [id])
+  tasks   TaskLabel[]
+}
+
+model TaskLabel {
+  id       String @id @default(cuid())
+  taskId   String
+  labelId  String
+
+  task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, labelId])
+}
+
+model TimeEntry {
+  id          String   @id @default(cuid())
+  description String?
+  duration    Float
+  date        String
+  taskId      String
+  userId      String
+  createdAt   DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  filename     String
+  fileType     String
+  fileSize     Int
+  url          String
+  taskId       String?
+  projectId    String?
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  task       Task?  @relation(fields: [taskId], references: [id])
+  project    Project? @relation(fields: [projectId], references: [id])
+  uploadedBy User   @relation("AttachmentUploader", fields: [uploadedById], references: [id])
+}
+
+model TaskDependency {
+  id          String   @id @default(cuid())
+  taskId      String
+  dependsOnId String
+  type        String
+  createdAt   DateTime @default(now())
+
+  task      Task @relation("TaskDependsOn", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOn Task @relation("TaskDependedBy", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, dependsOnId])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  type       String
+  title      String
+  message    String
+  read       Boolean  @default(false)
+  userId     String
+  relatedId  String?
+  relatedType String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ========================
+// Budget & Finance Models
+// ========================
+
+model BudgetCategory {
+  id        String   @id @default(cuid())
+  name      String
+  allocated Float
+  projectId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+}
+
+model Expense {
+  id               String    @id @default(cuid())
+  description      String
+  amount           Float
+  date             String
+  type             String
+  projectId        String
+  budgetCategoryId String?
+  approvedById     String?
+  approvedAt       String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  project         Project          @relation(fields: [projectId], references: [id])
+  budgetCategory  BudgetCategory?  @relation(fields: [budgetCategoryId], references: [id])
+  approvedBy      User?            @relation("ExpenseApprover", fields: [approvedById], references: [id])
+}
+
+model Subcontractor {
+  id              String    @id @default(cuid())
+  name            String
+  company         String
+  email           String
+  phone           String?
+  contractorType  String?
+  registrationNo  String?
+  gst             String?
+  pan             String?
+  license         String?
+  licenseExpiry   String?
+  insuranceExpiry String?
+  specialty       String?
+  rating          Float     @default(0)
+  preQualified    Boolean   @default(false)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  projectLinks  SubcontractorProject[]
+  quotations    Quotation[]
+  purchaseOrders PurchaseOrder[]
+  contracts     Contract[]
+}
+
+model SubcontractorProject {
+  id              String   @id @default(cuid())
+  subcontractorId String
+  projectId       String
+  contractAmount  Float?
+  startDate       String?
+  endDate         String?
+  status          String
+  createdAt       DateTime @default(now())
+
+  subcontractor Subcontractor @relation(fields: [subcontractorId], references: [id], onDelete: Cascade)
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([subcontractorId, projectId])
+}
+
+model BoqCategory {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  version     Int      @default(1)
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items   BoqItem[]
+}
+
+model BoqItem {
+  id          String   @id @default(cuid())
+  itemNo      String
+  description String
+  unit        String
+  quantity    Float
+  unitRate    Float
+  amount      Float
+  actualQty   Float?
+  actualRate  Float?
+  actualAmount Float?
+  status      String   @default("PENDING")
+  categoryId  String
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category BoqCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  project  Project     @relation(fields: [projectId], references: [id])
+}
+
+model Quotation {
+  id           String    @id @default(cuid())
+  referenceNo  String
+  vendorId     String?
+  title        String
+  description  String?
+  status       String    @default("DRAFT")
+  subtotal     Float
+  tax          Float
+  total        Float
+  validUntil   String?
+  terms        String?
+  projectId    String
+  createdById  String
+  approvedById String?
+  approvedAt   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  vendor    Subcontractor? @relation(fields: [vendorId], references: [id])
+  project   Project        @relation(fields: [projectId], references: [id])
+  createdBy User           @relation("QuotationCreator", fields: [createdById], references: [id])
+  approvedBy User?          @relation("QuotationApprover", fields: [approvedById], references: [id])
+  items     QuotationItem[]
+  purchaseOrders PurchaseOrder[]
+}
+
+model QuotationItem {
+  id          String   @id @default(cuid())
+  description String
+  unit        String
+  quantity    Float
+  unitRate    Float
+  amount      Float
+  quotationId String
+  createdAt   DateTime @default(now())
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+}
+
+model PurchaseOrder {
+  id           String    @id @default(cuid())
+  poNumber     String
+  vendorId     String?
+  title        String
+  description  String?
+  status       String    @default("DRAFT")
+  projectId    String
+  quotationId  String?
+  subtotal     Float
+  tax          Float
+  total        Float
+  deliveryDate String?
+  terms        String?
+  approvedById String?
+  approvedAt   String?
+  issuedAt     String?
+  closedAt     String?
+  createdById  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  vendor      Subcontractor?  @relation(fields: [vendorId], references: [id])
+  project     Project         @relation(fields: [projectId], references: [id])
+  quotation   Quotation?      @relation(fields: [quotationId], references: [id])
+  createdBy   User            @relation("POCreator", fields: [createdById], references: [id])
+  approvedBy  User?           @relation("POApprover", fields: [approvedById], references: [id])
+  items       PurchaseOrderItem[]
+  grvVouchers GrvVoucher[]
+  paymentVouchers PaymentVoucher[]
+}
+
+model PurchaseOrderItem {
+  id          String  @id @default(cuid())
+  description String
+  unit        String
+  orderedQty  Float
+  unitRate    Float
+  amount      Float
+  receivedQty Float   @default(0)
+  poId        String
+  createdAt   DateTime @default(now())
+
+  po        PurchaseOrder    @relation(fields: [poId], references: [id], onDelete: Cascade)
+  grvItems  GrvItem[]
+}
+
+model GrvVoucher {
+  id                String    @id @default(cuid())
+  grvNumber         String
+  poId              String?
+  title             String
+  status            String    @default("DRAFT")
+  projectId         String
+  totalItems        Int
+  notes             String?
+  invoiceNo         String?
+  qualityCheckedById String?
+  qualityCheckedAt  String?
+  verifiedById      String?
+  verifiedAt        String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  po              PurchaseOrder? @relation(fields: [poId], references: [id])
+  project         Project        @relation(fields: [projectId], references: [id])
+  qualityCheckedBy User?          @relation("GRVQualityChecker", fields: [qualityCheckedById], references: [id])
+  verifiedBy      User?          @relation("GRVVerifier", fields: [verifiedById], references: [id])
+  items           GrvItem[]
+}
+
+model GrvItem {
+  id          String   @id @default(cuid())
+  poItemId    String?
+  description String
+  unit        String
+  orderedQty  Float
+  receivedQty Float
+  rejectedQty Float
+  unitRate    Float
+  amount      Float
+  qualityStatus String
+  grvId       String
+  createdAt   DateTime @default(now())
+
+  poItem    PurchaseOrderItem? @relation(fields: [poItemId], references: [id])
+  grv       GrvVoucher         @relation(fields: [grvId], references: [id], onDelete: Cascade)
+}
+
+model PaymentVoucher {
+  id             String   @id @default(cuid())
+  voucherNo      String
+  title          String
+  paymentType    String
+  status         String   @default("DRAFT")
+  amount         Float
+  payeeName      String
+  paymentMode    String
+  bankReference  String?
+  projectId      String
+  poId           String?
+  contractId     String?
+  description    String?
+  certificateNo  String?
+  approvedById   String?
+  approvedAt     String?
+  paidAt         String?
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project    Project?       @relation(fields: [projectId], references: [id])
+  po         PurchaseOrder? @relation(fields: [poId], references: [id])
+  contract   Contract?      @relation(fields: [contractId], references: [id])
+  approvedBy User?          @relation("PaymentApprover", fields: [approvedById], references: [id])
+  createdBy  User           @relation("PaymentCreator", fields: [createdById], references: [id])
+}
+
+model ReceiptVoucher {
+  id             String   @id @default(cuid())
+  voucherNo      String
+  title          String
+  amount         Float
+  receivedFrom   String
+  paymentMode    String
+  bankReference  String?
+  projectId      String
+  description    String?
+  receivedAt     String?
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project     Project @relation(fields: [projectId], references: [id])
+  createdBy   User    @relation(fields: [createdById], references: [id])
+}
+
+model Contract {
+  id               String   @id @default(cuid())
+  contractNo       String
+  title            String
+  contractType     String
+  status           String   @default("DRAFT")
+  value            Float
+  retainagePercent Float    @default(10)
+  startDate        String?
+  endDate          String?
+  description      String?
+  terms            String?
+  projectId        String
+  vendorId         String?
+  createdById      String
+  approvedById     String?
+  approvedAt       String?
+  closedAt         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  project    Project        @relation(fields: [projectId], references: [id])
+  vendor     Subcontractor? @relation(fields: [vendorId], references: [id])
+  createdBy  User           @relation("ContractCreator", fields: [createdById], references: [id])
+  approvedBy User?          @relation("ContractApprover", fields: [approvedById], references: [id])
+  paymentVouchers PaymentVoucher[]
+  retainageWaivers  RetainageWaiver[]
+}
+
+// ========================
+// Project Management Models
+// ========================
+
+model Milestone {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        String?
+  status      String
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  filename    String
+  fileType    String
+  fileSize    Int
+  url         String
+  category    String
+  version     Int      @default(1)
+  description String?
+  projectId   String
+  uploadedById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy  User    @relation(fields: [uploadedById], references: [id])
+}
+
+model RFI {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  status      String   @default("OPEN")
+  priority    String
+  dueDate     String?
+  response    String?
+  projectId   String
+  assignedToId String?
+  createdById  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo User?   @relation("RFIAssignee", fields: [assignedToId], references: [id])
+  createdBy  User    @relation("RFICreator", fields: [createdById], references: [id])
+}
+
+model Submittal {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  status       String   @default("PENDING")
+  dueDate      String?
+  reviewNotes  String?
+  projectId    String
+  submittedById String?
+  reviewedById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  submittedBy User?   @relation("SubmittalSubmitter", fields: [submittedById], references: [id])
+  reviewedBy  User?   @relation("SubmittalReviewer", fields: [reviewedById], references: [id])
+}
+
+model DailyLog {
+  id           String   @id @default(cuid())
+  date         String
+  weather      String?
+  temperature  String?
+  crewSize     Int?
+  notes        String?
+  safetyNotes  String?
+  projectId    String
+  createdById  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy  User    @relation(fields: [createdById], references: [id])
+}
+
+model PunchItem {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  status       String   @default("OPEN")
+  priority     String
+  location     String?
+  dueDate      String?
+  photoUrl     String?
+  projectId    String
+  taskId       String?
+  assignedToId String?
+  createdById  String
+  completedAt  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task        Task?   @relation(fields: [taskId], references: [id])
+  assignedTo  User?   @relation("PunchAssignee", fields: [assignedToId], references: [id])
+  createdBy   User    @relation(fields: [createdById], references: [id])
+}
+
+model ChangeOrder {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  status       String   @default("PROPOSED")
+  costImpact   Float
+  scheduleImpact String?
+  reason       String?
+  projectId    String
+  requestedById String?
+  approvedById  String?
+  approvedAt    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requestedBy User?   @relation("CORequester", fields: [requestedById], references: [id])
+  approvedBy  User?   @relation("COApprover", fields: [approvedById], references: [id])
+}
+
+model Material {
+  id           String   @id @default(cuid())
+  name         String
+  quantity     Float
+  unit         String
+  unitCost     Float
+  supplier     String?
+  status       String   @default("PLANNED")
+  orderedDate  String?
+  deliveredDate String?
+  notes        String?
+  projectId    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model PhotoDocumentation {
+  id          String   @id @default(cuid())
+  title       String
+  filename    String
+  url         String
+  category    String
+  location    String?
+  description String?
+  beforeUrl   String?
+  projectId   String
+  taskId      String?
+  uploadedById String
+  createdAt   DateTime @default(now())
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task        Task?   @relation(fields: [taskId], references: [id])
+  uploadedBy  User    @relation(fields: [uploadedById], references: [id])
+}
+
+model RetainageWaiver {
+  id               String   @id @default(cuid())
+  title            String
+  vendorName       String
+  waiverType       String
+  amount           Float
+  retainagePercent Float
+  status           String   @default("PENDING")
+  projectId        String
+  approvedById     String?
+  approvedAt       String?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  approvedBy  User?   @relation("RetainageApprover", fields: [approvedById], references: [id])
+  contract    Contract? @relation(fields: [contractId], references: [id])
+  contractId  String?
+}
+
+model TaskTemplate {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  priority       String
+  estimatedHours Float?
+  billable       Boolean  @default(true)
+  isMilestone    Boolean  @default(false)
+  labels         String?
+  projectId      String?
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project   Project? @relation(fields: [projectId], references: [id])
+  createdBy User    @relation(fields: [createdById], references: [id])
+}
+
+model RecurringTask {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  priority       String
+  estimatedHours Float?
+  projectId      String
+  assigneeId     String?
+  recurrenceRule String
+  nextDueDate    String
+  lastGenerated  String?
+  enabled        Boolean  @default(true)
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee  User?   @relation("RecurringTaskAssignee", fields: [assigneeId], references: [id])
+  createdBy User    @relation("RecurringTaskCreator", fields: [createdById], references: [id])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String
+  type      String   @default("TEXT")
+  channelId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  user    User      @relation(fields: [userId], references: [id])
+  project Project?  @relation(fields: [channelId], references: [id])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  action     String
+  details    String?
+  userId     String
+  projectId  String?
+  relatedId  String?
+  relatedType String?
+  createdAt  DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id])
+  project Project? @relation(fields: [projectId], references: [id])
 }

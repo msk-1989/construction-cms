@@ -4,23 +4,20 @@ import { db } from '@/lib/db'
 export async function GET() {
   try {
     const users = await db.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        avatar: true,
-        createdAt: true,
-        updatedAt: true,
-      },
       orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: {
+            projectMemberships: true,
+            assignedTasks: true,
+            createdProjects: true,
+          },
+        },
+      },
     })
-
     return NextResponse.json({ success: true, data: users })
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch team members' },
-      { status: 500 }
-    )
+  } catch (e: unknown) {
+    const m = e instanceof Error ? e.message : 'Failed'
+    return NextResponse.json({ success: false, error: m }, { status: 500 })
   }
 }

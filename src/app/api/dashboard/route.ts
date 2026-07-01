@@ -3,69 +3,112 @@ import { db } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { userId } = body
+    const { userId } = await request.json()
+    const now = new Date().toISOString().split('T')[0]
 
-    const totalProjects = await db.project.count()
-    const activeProjects = await db.project.count({ where: { status: 'ACTIVE' } })
-    const completedProjects = await db.project.count({ where: { status: 'COMPLETED' } })
-    const onHoldProjects = await db.project.count({ where: { status: 'ON_HOLD' } })
+    const [
+      totalProjects,
+      activeProjects,
+      completedProjects,
+      onHoldProjects,
+      cancelledProjects,
+      planningProjects,
+      totalTasks,
+      pendingTasks,
+      inProgressTasks,
+      completedTasks,
+      onHoldTasks,
+      totalMembers,
+      totalExpenses,
+      openRfis,
+      openPunchItems,
+      pendingChangeOrders,
+      activeContracts,
+    ] = await Promise.all([
+      db.project.count(),
+      db.project.count({ where: { status: 'ACTIVE' } }),
+      db.project.count({ where: { status: 'COMPLETED' } }),
+      db.project.count({ where: { status: 'ON_HOLD' } }),
+      db.project.count({ where: { status: 'CANCELLED' } }),
+      db.project.count({ where: { status: 'PLANNING' } }),
+      db.task.count(),
+      db.task.count({ where: { status: 'PENDING' } }),
+      db.task.count({ where: { status: 'IN_PROGRESS' } }),
+      db.task.count({ where: { status: 'COMPLETED' } }),
+      db.task.count({ where: { status: 'ON_HOLD' } }),
+      db.user.count({ where: { status: 'ACTIVE' } }),
+      db.expense.aggregate({ _sum: { amount: true } }),
+      db.rFI.count({ where: { status: 'OPEN' } }),
+      db.punchItem.count({ where: { status: 'OPEN' } }),
+      db.changeOrder.count({ where: { status: 'PROPOSED' } }),
+      db.contract.count({ where: { status: 'ACTIVE' } }),
+    ])
 
-    const totalTasks = await db.task.count()
-    const pendingTasks = await db.task.count({ where: { status: 'PENDING' } })
-    const inProgressTasks = await db.task.count({ where: { status: 'IN_PROGRESS' } })
-    const completedTasks = await db.task.count({ where: { status: 'COMPLETED' } })
+    const budgetAgg = await db.project.aggregate({ _sum: { budget: true } })
+    const totalBudget = budgetAgg._sum.budget || 0
+    const totalSpent = totalExpenses._sum.amount || 0
+    const budgetUtilization = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0
 
-    const totalMembers = await db.user.count()
+    const overdueTasks = await db.task.count({
+      where: { dueDate: { lt: now }, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
+    })
 
     const recentProjects = await db.project.findMany({
-      take: 5,
       orderBy: { createdAt: 'desc' },
-      include: {
-        _count: { select: { tasks: true, members: true } },
-        createdBy: {
-          select: { id: true, email: true, name: true, role: true, avatar: true },
-        },
-      },
+      take: 5,
+      include: { createdBy: { select: { id: true, name: true, avatar: true } } },
     })
 
     const upcomingTasks = await db.task.findMany({
-      where: {
-        status: { not: 'COMPLETED' },
-        dueDate: { not: null },
-      },
-      take: 5,
+      where: { dueDate: { gte: now }, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
       orderBy: { dueDate: 'asc' },
+      take: 5,
       include: {
-        project: {
-          select: { id: true, name: true, code: true },
-        },
-        assignee: {
-          select: { id: true, name: true, avatar: true },
-        },
+        assignee: { select: { id: true, name: true, avatar: true } },
+        project: { select: { id: true, name: true, code: true } },
       },
     })
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        totalProjects,
-        activeProjects,
-        completedProjects,
-        onHoldProjects,
-        totalTasks,
-        pendingTasks,
-        inProgressTasks,
-        completedTasks,
-        totalMembers,
-        recentProjects,
-        upcomingTasks,
+    const recentActivity = await db.activityLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      include: {
+        user: { select: { id: true, name: true, avatar: true } },
+        project: { select: { id: true, name: true, code: true } },
       },
     })
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch dashboard data' },
-      { status: 500 }
-    )
+
+    const data = {
+      totalProjects,
+      activeProjects,
+      completedProjects,
+      onHoldProjects,
+      cancelledProjects,
+      planningProjects,
+      totalTasks,
+      pendingTasks,
+      inProgressTasks,
+      completedTasks,
+      onHoldTasks,
+      totalMembers,
+      totalBudget,
+      totalSpent,
+      totalExpenses: totalSpent,
+      totalSubcontractors: await db.subcontractor.count(),
+      openRfis,
+      openPunchItems,
+      pendingChangeOrders,
+      activeContracts,
+      overdueTasks,
+      recentProjects,
+      upcomingTasks,
+      recentActivity,
+      budgetUtilization,
+    }
+
+    return NextResponse.json({ success: true, data })
+  } catch (e: unknown) {
+    const m = e instanceof Error ? e.message : 'Failed'
+    return NextResponse.json({ success: false, error: m }, { status: 500 })
   }
 }
