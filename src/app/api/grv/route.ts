@@ -4,9 +4,8 @@ import { db } from '@/lib/db'
 export async function GET(req: NextRequest) {
   try {
     const projectId = req.nextUrl.searchParams.get('projectId')
-    if (!projectId) return NextResponse.json({ success: false, error: 'projectId required' }, { status: 400 })
     const data = await db.grvVoucher.findMany({
-      where: { projectId },
+      where: projectId ? { projectId } : undefined,
       include: {
         po: { include: { vendor: true } },
         verifiedBy: { select: { id: true, name: true, email: true } },

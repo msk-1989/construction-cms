@@ -92,7 +92,7 @@ export function Header() {
 
   const markAllRead = async () => {
     try {
-      await globalThis.fetch('/api/notifications/read-all', { method: 'POST' })
+      await globalThis.fetch('/api/notifications', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markAll: true, userId: user?.id }) })
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
       setUnreadCount(0)
     } catch {

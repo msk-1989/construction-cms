@@ -48,7 +48,7 @@ export function ReportsView() {
   const fetchAll = useCallback(async () => {
     try {
       const [statsRes, projRes, taskRes] = await Promise.all([
-        globalThis.fetch('/api/dashboard', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: 'all' }) }),
+        globalThis.fetch('/api/dashboard'),
         globalThis.fetch('/api/projects'),
         globalThis.fetch('/api/tasks'),
       ])

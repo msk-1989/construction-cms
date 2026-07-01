@@ -5,9 +5,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const projectId = searchParams.get('projectId')
-    if (!projectId) return NextResponse.json({ success: false, error: 'projectId is required' }, { status: 400 })
     const materials = await db.material.findMany({
-      where: { projectId },
+      where: projectId ? { projectId } : undefined,
       orderBy: { createdAt: 'desc' },
     })
     return NextResponse.json({ success: true, data: materials })
