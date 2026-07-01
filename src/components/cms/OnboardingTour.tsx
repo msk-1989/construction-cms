@@ -5,13 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, HardHat, FolderKanban, ListTodo, MessageSquare, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-const TOUR_KEY = 'cms-onboarding-completed'
+const TOUR_KEY = 'cbos-onboarding-completed'
 
 const tips = [
   {
     icon: HardHat,
-    title: 'Welcome to CMS!',
-    description: 'Your all-in-one construction management system. Manage projects, tasks, teams, and more.',
+    title: 'Welcome to CBOS!',
+    description: 'Your all-in-one Construction Business Operating System. Manage projects, tasks, teams, finances, and more.',
     color: 'from-amber-500 to-orange-500',
   },
   {

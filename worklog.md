@@ -104,3 +104,40 @@ Stage Summary:
 - Corporate: financial analytics, procurement, team overview
 - Site: daily logs, RFI, punch items, materials, safety
 - External: view-only project access, documents, payments
+---
+Task ID: 2-B
+Agent: Main Agent
+Task: Seed database with users for all 16 CBOS roles
+
+Work Log:
+- Created /home/z/my-project/scripts/seed-roles.ts using PrismaClient directly with Neon HTTP pool
+- Updated 4 existing users to correct new roles (priya→PROJECT_MANAGER, amit→SITE_ENGINEER, vikram→SITE_MANAGER, anita→SAFETY_OFFICER)
+- raj@cms.com kept ADMIN, sneha@cms.com kept MEMBER
+- Created 13 new users via upsert (idempotent on re-run) covering SUPER_ADMIN, CEO, CFO, COO, HR_MANAGER, PROCUREMENT_HEAD, PROJECT_DIRECTOR, QA_QC_ENGINEER, STORE_KEEPER, CLIENT, CONSULTANT, ARCHITECT, SUBCONTRACTOR
+- All passwords set to "password" (plain text, matching existing auth)
+- Script ran successfully, 19 total users now in database
+
+Stage Summary:
+- 19 users in Neon PostgreSQL covering 16 distinct roles
+- Seed script is idempotent (uses upsert, safe to re-run)
+- All login credentials: {email} / password
+
+---
+Task ID: 2-A
+Agent: Main Agent
+Task: Rebuild entire role-based navigation system
+
+Work Log:
+- Updated src/types/cms.ts: Added 6 new ViewTypes (procurement, hr, finance, qa, safety, store-panel). Updated UserRole to include all 20 roles (SUPER_ADMIN, ADMIN, MANAGER, MEMBER, CEO, CFO, COO, HR_MANAGER, PROCUREMENT_HEAD, PROJECT_DIRECTOR, PROJECT_MANAGER, SITE_MANAGER, SITE_ENGINEER, QA_QC_ENGINEER, SAFETY_OFFICER, STORE_KEEPER, CLIENT, CONSULTANT, ARCHITECT, SUBCONTRACTOR).
+- Updated src/lib/permissions.ts: Added 30 new permissions across HR (5), Procurement (3), Finance (4), QA/QC (4), Safety (4), Store (4), Site Engineering (2), Labour (3), External (4). Added ROLE_PERMISSIONS entries for all 16 new roles (CEO, CFO, COO, HR_MANAGER, PROCUREMENT_HEAD, PROJECT_DIRECTOR, PROJECT_MANAGER, SITE_MANAGER, SITE_ENGINEER, QA_QC_ENGINEER, SAFETY_OFFICER, STORE_KEEPER, CLIENT, CONSULTANT, ARCHITECT, SUBCONTRACTOR). Updated getRoleLabel with all 20 role labels. Updated getRoleBadgeClass with color classes for all 20 roles.
+- Completely rewrote src/components/cms/Sidebar.tsx: Built ROLES_SIDEBAR_CONFIG mapping all 20 roles to their specific menu sections. Created iconMap for dynamic icon resolution. Built SubMenu component with collapsible sub-menus and chevron animation. Auto-appends Communication (Notifications + Chat) and Settings to every role's menu. Kept existing visual style (amber gradient, Framer Motion, 256px/68px collapsible, mobile Sheet, tooltips, avatar + role label, logout button).
+- Created 6 placeholder panel components: ProcurementPanel.tsx (5 tabs), HRPanel.tsx (4 tabs), FinancePanel.tsx (4 tabs), QAPanel.tsx (4 tabs), SafetyPanel.tsx (5 tabs), StorePanel.tsx (4 tabs). Each has amber/orange themed "Coming Soon" UI with Framer Motion animation.
+- Updated src/app/page.tsx: Added 6 new view titles and route cases for all new panels.
+- Updated src/components/cms/Header.tsx: Added 10 new entries to VIEW_LABELS (procurement, hr, finance, qa, safety, store-panel, corporate, site, external, admin).
+- Lint: 0 errors, 11 pre-existing warnings (all in ProjectManagementTabs.tsx, unrelated).
+
+Stage Summary:
+- Complete role-based navigation system with 20 roles and unique sidebar menus per role
+- 6 new placeholder panels with tabbed UI and "Coming Soon" state
+- 30 new permissions covering HR, Procurement, Finance, QA, Safety, Store, Labour, and External modules
+- Zero lint errors introduced

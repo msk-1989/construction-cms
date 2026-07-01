@@ -28,8 +28,17 @@ const VIEW_LABELS: Record<string, string> = {
   reports: 'Reports',
   settings: 'Settings',
   notifications: 'Notifications',
-  admin: 'Admin Panel',
+  admin: 'Super Admin',
   chat: 'Chat',
+  procurement: 'Procurement',
+  hr: 'HR Management',
+  finance: 'Financial Management',
+  qa: 'Quality Assurance',
+  safety: 'Safety Management',
+  'store-panel': 'Store Management',
+  corporate: 'Corporate',
+  site: 'Site Operations',
+  external: 'External Portal',
 }
 
 export function Header() {
@@ -116,7 +125,7 @@ export function Header() {
 
       {/* Breadcrumb */}
       <nav className="hidden sm:flex items-center gap-1.5 text-sm min-w-0">
-        <span className="text-muted-foreground font-medium">CMS</span>
+        <span className="text-muted-foreground font-medium">CBOS</span>
         <span className="text-muted-foreground/40">/</span>
         <span className="font-medium text-foreground truncate">{VIEW_LABELS[currentView] || 'Dashboard'}</span>
       </nav>

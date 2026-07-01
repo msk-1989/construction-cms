@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const lines: string[] = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Construction CMS//EN',
+      'PRODID:-//CBOS Construction//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       `X-WR-CALNAME:${project.name}`,

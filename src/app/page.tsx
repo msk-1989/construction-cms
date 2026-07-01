@@ -19,6 +19,12 @@ import { CorporatePanel } from '@/components/cms/CorporatePanel'
 import { SitePanel } from '@/components/cms/SitePanel'
 import { ExternalPanel } from '@/components/cms/ExternalPanel'
 import { ChatView } from '@/components/cms/ChatView'
+import { ProcurementPanel } from '@/components/cms/ProcurementPanel'
+import { HRPanel } from '@/components/cms/HRPanel'
+import { FinancePanel } from '@/components/cms/FinancePanel'
+import { QAPanel } from '@/components/cms/QAPanel'
+import { SafetyPanel } from '@/components/cms/SafetyPanel'
+import { StorePanel } from '@/components/cms/StorePanel'
 import { AIChatPanel } from '@/components/cms/AIChatPanel'
 import { Toaster } from '@/components/ui/sonner'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -37,9 +43,15 @@ const VIEW_TITLES: Record<ViewType, string> = {
   notifications: 'Notifications',
   admin: 'Super Admin',
   chat: 'Chat',
-  corporate: 'Corporate Panel',
-  site: 'Site Panel',
-  external: 'External Panel',
+  corporate: 'Corporate',
+  site: 'Site Operations',
+  external: 'External Portal',
+  procurement: 'Procurement',
+  hr: 'HR Management',
+  finance: 'Financial Management',
+  qa: 'Quality Assurance',
+  safety: 'Safety Management',
+  'store-panel': 'Store Management',
 }
 
 const pageVariants = {
@@ -61,9 +73,9 @@ export default function Home() {
   // Dynamic page title
   useEffect(() => {
     if (isAuthenticated) {
-      document.title = `${VIEW_TITLES[currentView] || 'Dashboard'} — CMS`
+      document.title = `${VIEW_TITLES[currentView] || 'Dashboard'} — CBOS`
     } else {
-      document.title = 'Sign In — CMS'
+      document.title = 'Sign In — CBOS'
     }
   }, [currentView, isAuthenticated])
 
@@ -102,6 +114,12 @@ export default function Home() {
       case 'corporate': return <CorporatePanel />
       case 'site': return <SitePanel />
       case 'external': return <ExternalPanel />
+      case 'procurement': return <ProcurementPanel />
+      case 'hr': return <HRPanel />
+      case 'finance': return <FinancePanel />
+      case 'qa': return <QAPanel />
+      case 'safety': return <SafetyPanel />
+      case 'store-panel': return <StorePanel />
       default: return <DashboardView />
     }
   }
@@ -131,10 +149,10 @@ export default function Home() {
             <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5 font-medium text-foreground/70">
                 <HardHat className="h-3.5 w-3.5" />
-                CMS
+                CBOS
               </span>
               <span className="h-3 w-px bg-border" />
-              <span>Construction Management System</span>
+              <span>Construction Business Operating System</span>
               <span className="h-3 w-px bg-border" />
               <span>&copy; {new Date().getFullYear()}</span>
             </div>

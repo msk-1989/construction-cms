@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CMS — Construction Management System",
-  description: "Construction Management System for project tracking, procurement, and team collaboration.",
-  keywords: ["CMS", "Construction", "Project Management", "Procurement"],
-  authors: [{ name: "CMS Team" }],
+  title: "CBOS — Construction Business Operating System",
+  description: "Construction Business Operating System for project tracking, procurement, financial management, and team collaboration.",
+  keywords: ["CBOS", "Construction", "Business Operating System", "Project Management", "Procurement"],
+  authors: [{ name: "CBOS Team" }],
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },

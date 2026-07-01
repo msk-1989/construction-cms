@@ -3,25 +3,21 @@
 // ========================
 
 export type ViewType =
-  | 'dashboard'
-  | 'projects'
-  | 'tasks'
-  | 'team'
-  | 'reports'
-  | 'project-detail'
-  | 'settings'
-  | 'notifications'
-  | 'admin'
-  | 'chat'
-  | 'corporate'
-  | 'site'
-  | 'external'
+  | 'dashboard' | 'projects' | 'project-detail' | 'tasks' | 'team' | 'reports'
+  | 'settings' | 'notifications' | 'admin' | 'chat' | 'corporate' | 'site' | 'external'
+  | 'procurement' | 'hr' | 'finance' | 'qa' | 'safety' | 'store-panel'
 
 // ========================
 // Core Types
 // ========================
 
-export type UserRole = 'ADMIN' | 'MANAGER' | 'MEMBER'
+export type UserRole = 
+  'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'MEMBER' |
+  'CEO' | 'CFO' | 'COO' | 'HR_MANAGER' | 'PROCUREMENT_HEAD' |
+  'PROJECT_DIRECTOR' | 'PROJECT_MANAGER' |
+  'SITE_MANAGER' | 'SITE_ENGINEER' | 'QA_QC_ENGINEER' | 'SAFETY_OFFICER' | 'STORE_KEEPER' |
+  'CLIENT' | 'CONSULTANT' | 'ARCHITECT' | 'SUBCONTRACTOR'
+
 export type UserStatus = 'ACTIVE' | 'INACTIVE'
 
 export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'

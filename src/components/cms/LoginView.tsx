@@ -119,8 +119,8 @@ export function LoginView() {
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mb-4 shadow-lg shadow-amber-500/25">
                 <HardHat className="h-9 w-9 text-white" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">CMS</h1>
-              <p className="text-sm text-muted-foreground mt-1">Construction Management System</p>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">CBOS</h1>
+              <p className="text-sm text-muted-foreground mt-1">Construction Business Operating System</p>
             </motion.div>
 
             {/* Form */}

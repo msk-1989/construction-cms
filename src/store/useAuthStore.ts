@@ -19,6 +19,6 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ user: null, isAuthenticated: false }),
       updateUser: (user) => set({ user }),
     }),
-    { name: 'cms-auth' }
+    { name: 'cbos-auth' }
   )
 )
