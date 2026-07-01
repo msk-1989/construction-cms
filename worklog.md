@@ -249,3 +249,28 @@ Stage Summary:
 - Notifications mark-all-read fixed (non-existent endpoint → existing PUT endpoint)
 - 7 files changed, 7 insertions, 12 deletions
 - Commit: b369407 pushed to main
+
+---
+Task ID: SIDEBAR-ACTIVE-FIX
+Agent: Main Agent
+Task: Fix sidebar highlighting multiple menu items instead of just one
+
+Work Log:
+- Diagnosed root cause: multiple sidebar items share the same `view` (e.g., 7 items have `view: 'site'`). The `isActive` check only compared `currentView === item.view`, so ALL items with matching view were highlighted.
+- Added `lastNavTab: string | null` and `setLastNavTab` to useAppStore for persistent tab tracking
+- Updated `handleNav` to also call `setLastNavTab(tab)` when navigating
+- Fixed `isActive` logic in 3 places:
+  1. Flat items (line 849): `currentView === item.view && (!itemTab || lastNavTab === itemTab)`
+  2. SubMenu parent (line 645): same logic
+  3. SubMenu children (line 719): same logic
+- Passed `lastNavTab` prop to SubMenu component
+- Fixed LABEL_TAB_MAP collision: 'Site Reports' was mapped to 'diary' (same as 'Site Diary'), changed to 'site-reports'
+- Browser-tested: clicking Site Diary, RFI, Method Statements, Dashboard — each shows exactly 1 active sidebar item
+- Lint: 0 errors
+- Pushed to Vercel
+
+Stage Summary:
+- Only the clicked sidebar item is now highlighted (no more multiple selections)
+- Items without tabs (Dashboard, Projects, etc.) work as before
+- Items with tabs (Site Diary, RFI, etc.) require both view AND tab match
+- Commit: 2ce95a0 pushed to main
