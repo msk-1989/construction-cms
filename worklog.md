@@ -141,3 +141,64 @@ Stage Summary:
 - 6 new placeholder panels with tabbed UI and "Coming Soon" state
 - 30 new permissions covering HR, Procurement, Finance, QA, Safety, Store, Labour, and External modules
 - Zero lint errors introduced
+
+---
+Task ID: 3-B
+Agent: Main Agent
+Task: Build fully functional ProcurementPanel and StorePanel
+
+Work Log:
+- Replaced placeholder ProcurementPanel.tsx with full 5-tab implementation (~580 lines)
+  - Vendors Tab: Fetches from /api/subcontractors with fallback to 10 sample vendors. Search by name/company, filter by type. Star rating display. Add Vendor dialog with 8 fields (name, company, email, phone, type, speciality, GST, PAN). Stats: Total Vendors, Active, Avg Rating, New This Month.
+  - Purchase Orders Tab: Fetches from /api/purchase-orders with fallback to 8 sample POs. Color-coded status badges (Draft=gray, Submitted=blue, Approved=amber, Issued=green, Closed=muted). Filter by status. Create PO dialog. Stats: Total POs, Pending Approval, Approved, Total Value.
+  - Materials Tab: Fetches from /api/materials with fallback to 10 sample materials. Low stock alert banner. Filter by status and project. Add Material dialog. Status badges (Planned/Ordered/Delivered/Installed). Stats: Total Items, Ordered, Delivered, Total Value.
+  - Quotations Tab: Fetches from /api/quotations with fallback to 7 sample quotations. Subtotal + Tax + Total columns. Status badges (Draft/Submitted/Approved/Rejected). Filter by status. Stats: Total, Pending, Approved, Total Value.
+  - Comparisons Tab: Interactive vendor comparison for 3 materials. Select material from dropdown. Highlights best (lowest) price in green. Shows savings card. Star ratings per vendor.
+
+- Replaced placeholder StorePanel.tsx with full 4-tab implementation (~620 lines)
+  - Inventory Tab: Fetches from /api/materials with fallback to 12 sample items. Stock status computed from qty vs reorder level (In Stock=green, Low Stock=amber, Out of Stock=red). Progress bar per item. Category summary cards grid. Add Stock dialog, Issue Material dialog. Filter by status and category.
+  - Material Requests Tab: 12 sample requests with priority badges (High=red, Medium=amber, Low=green) and status badges. Approve/Reject action buttons for pending requests. Create Request dialog with priority selector. Filter by status and priority.
+  - Goods Receipt Tab: Fetches from /api/grv with fallback to 7 sample GRVs. Status badges (Draft/Quality Checked/Verified/Rejected). Quality Check and Verify actions in dropdown. Receive Goods dialog. Filter by status.
+  - Stock Reports Tab: 4 summary cards (Total Stock Value, Consumed, Received, Wastage %). Div-based animated bar chart for weekly consumption. Category-wise stock breakdown table. Reorder alerts table with deficit calculation. Stock movement log (10 records) with In/Out badges.
+
+- Both panels use: 'use client', useMemo for all computed data, Framer Motion animations, amber/orange gradient theme, shadcn/ui components, responsive design, AnimatePresence for table rows.
+- Lint: 0 errors, 0 new warnings (11 pre-existing warnings in ProjectManagementTabs.tsx).
+
+Stage Summary:
+- 2 fully functional panels replacing previous "Coming Soon" placeholders
+- ProcurementPanel: 5 tabs with real API integration and comprehensive fallback data
+- StorePanel: 4 tabs with inventory management, material requests, goods receipt, and stock reports
+- All API fetches gracefully fall back to rich sample data on failure
+- Consistent amber/orange theme with Framer Motion animations throughout
+
+---
+Task ID: 3-A (retry 2)
+Agent: Main Agent
+Task: Verify and fix HRPanel and FinancePanel for full compliance
+
+Work Log:
+- HRPanel.tsx (1274 lines): Added phone field to Add Employee dialog, limited attendance generator to exactly 20 records
+- FinancePanel.tsx (1152 lines): Added fetch from /api/payments with fallback to SAMPLE_INVOICES, added skeleton loading state, added 8th pending payment (CraneServices Ltd)
+- Both panels confirmed: 4 tabs each, all required features, amber/orange theme, shadcn/ui, Framer Motion, useMemo for derived data, responsive design
+- Lint: 0 errors in HRPanel.tsx or FinancePanel.tsx (pre-existing errors in QAPanel.tsx and SafetyPanel.tsx are unrelated)
+
+Stage Summary:
+- HRPanel: Employee Management (fetch /api/team, 12 fallback, search/filter, Add Dialog with 6 fields), Attendance (20 records, status badges, bar chart 14 days, filter), Payroll (12 records, stats, Generate Dialog, dept breakdown), Recruitment (6 postings, 10 applications, Post Job dialog, stats)
+- FinancePanel: Invoices (fetch /api/payments, 10 fallback, search/filter, Create Dialog), Payment Approval (8 pending, approve/reject with confirmation, stats), Budget (fetch /api/projects, 6 project progress bars, category breakdown), Financial Reports (P&L, cash flow chart, project profitability)
+
+---
+Task ID: 3-C (retry 3)
+Agent: Main Agent
+Task: Build fully functional QAPanel and SafetyPanel with lint fixes
+
+Work Log:
+- Rewrote QAPanel.tsx (1209 lines): Moved StatCard component outside render function to fix react-hooks/static-components errors. 4 tabs: Quality Checks (10 inspections, search/filter, Pass Rate progress bar, Schedule Inspection dialog with 8-item Pass/Fail/NA checklist), Test Records (3 sub-section Cards: Cube Tests 6 records, Steel Tests 5 records, Soil Tests 4 records, Record Test dialog), NCR Management (8 NCRs, severity/status filters, CAPA table with 6 linked actions, Create NCR dialog), Quality Audits (5 audits, score color-coding, Schedule Audit dialog).
+- Fixed SafetyPanel.tsx (1350 lines): Removed duplicate StatCard and CircularScore function definitions that were inside the component body (shadowing the correctly-placed outer definitions at lines 283-327). 5 tabs preserved: Safety Inspections (8 inspections, 10-item checklist dialog with compliance scoring), Incident Reporting (6 incidents with severity badges, 6-month bar chart), Near Miss (6 reports, Report Near Miss dialog), Safety Training (5 Toolbox Talks, 4 Meetings, 8 Training Records with Valid/Expired status, Create Session dialog, compliance card), Safety Documents (Safety Policy card, 5 PTWs, 4 Risk Assessments, Upload Document button).
+- Both panels: 'use client', useMemo for all computed data, framer-motion AnimatePresence on table rows, amber/orange gradient theme, shadcn/ui components (Card, Table, Badge, Button, Dialog, Tabs, Input, Select, Label, Textarea, Checkbox, Progress, Alert, Separator), Lucide icons.
+- Stats cards use rounded-xl icon in bg-gradient from-amber-500 to-orange-600.
+
+Stage Summary:
+- QAPanel.tsx: 1209 lines, 4 fully functional tabs, all features per spec
+- SafetyPanel.tsx: 1350 lines, 5 fully functional tabs, all features per spec
+- Lint: 0 errors (down from 44), 11 pre-existing warnings in ProjectManagementTabs.tsx
+- Root cause: StatCard/CircularScore components were defined inside render function, triggering react-hooks/static-components rule
