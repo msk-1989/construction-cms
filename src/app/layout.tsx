@@ -19,7 +19,11 @@ export const metadata: Metadata = {
   keywords: ["CMS", "Construction", "Project Management", "Procurement"],
   authors: [{ name: "CMS Team" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.png", sizes: "1024x1024", type: "image/png" },
+    ],
+    apple: "/favicon.png",
   },
 };
 
