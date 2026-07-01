@@ -62,7 +62,8 @@ interface SidebarMenuItem {
   view: ViewType
   label: string
   icon: string
-  children?: { view: ViewType; label: string; icon?: string }[]
+  tab?: string
+  children?: { view: ViewType; label: string; icon?: string; tab?: string }[]
 }
 
 interface SidebarMenuSection {
@@ -374,9 +375,10 @@ const ROLES_SIDEBAR_CONFIG: Record<string, SidebarMenuSection[]> = {
       label: 'Main',
       items: [
         { view: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
-        { view: 'projects', label: 'My Projects', icon: 'FolderKanban' },
-        { view: 'site', label: 'Payments', icon: 'CreditCard' },
-        { view: 'site', label: 'Documents', icon: 'FolderOpen' },
+        { view: 'external', label: 'My Projects', icon: 'FolderKanban' },
+        { view: 'external', label: 'Documents', icon: 'FolderOpen' },
+        { view: 'external', label: 'Drawings', icon: 'Ruler' },
+        { view: 'external', label: 'Payments', icon: 'CreditCard' },
         { view: 'settings', label: 'Settings', icon: 'Settings' },
       ],
     },
@@ -387,20 +389,23 @@ const ROLES_SIDEBAR_CONFIG: Record<string, SidebarMenuSection[]> = {
       label: 'Main',
       items: [
         { view: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
+        { view: 'external', label: 'My Projects', icon: 'FolderKanban' },
       ],
     },
     {
       label: 'Design & Review',
       items: [
-        { view: 'site', label: 'Drawings', icon: 'Ruler' },
-        { view: 'site', label: 'RFI Response', icon: 'FileQuestion' },
-        { view: 'site', label: 'Inspection', icon: 'ClipboardCheck' },
-        { view: 'site', label: 'Design Review', icon: 'Compass' },
+        { view: 'external', label: 'Drawings', icon: 'Ruler' },
+        { view: 'external', label: 'RFI Response', icon: 'FileQuestion' },
+        { view: 'external', label: 'Inspection', icon: 'ClipboardCheck' },
+        { view: 'external', label: 'Design Review', icon: 'Compass' },
+        { view: 'external', label: 'Documents', icon: 'FolderOpen' },
       ],
     },
     {
       label: 'Overview',
       items: [
+        { view: 'external', label: 'Payments', icon: 'CreditCard' },
         { view: 'settings', label: 'Settings', icon: 'Settings' },
       ],
     },
@@ -411,20 +416,23 @@ const ROLES_SIDEBAR_CONFIG: Record<string, SidebarMenuSection[]> = {
       label: 'Main',
       items: [
         { view: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
+        { view: 'external', label: 'My Projects', icon: 'FolderKanban' },
       ],
     },
     {
       label: 'Design & Review',
       items: [
-        { view: 'site', label: 'Drawings', icon: 'Ruler' },
-        { view: 'site', label: 'RFI Response', icon: 'FileQuestion' },
-        { view: 'site', label: 'Inspection', icon: 'ClipboardCheck' },
-        { view: 'site', label: 'Design Review', icon: 'Compass' },
+        { view: 'external', label: 'Drawings', icon: 'Ruler' },
+        { view: 'external', label: 'RFI Response', icon: 'FileQuestion' },
+        { view: 'external', label: 'Inspection', icon: 'ClipboardCheck' },
+        { view: 'external', label: 'Design Review', icon: 'Compass' },
+        { view: 'external', label: 'Documents', icon: 'FolderOpen' },
       ],
     },
     {
       label: 'Overview',
       items: [
+        { view: 'external', label: 'Payments', icon: 'CreditCard' },
         { view: 'settings', label: 'Settings', icon: 'Settings' },
       ],
     },
@@ -435,15 +443,16 @@ const ROLES_SIDEBAR_CONFIG: Record<string, SidebarMenuSection[]> = {
       label: 'Main',
       items: [
         { view: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
+        { view: 'external', label: 'My Projects', icon: 'FolderKanban' },
       ],
     },
     {
       label: 'Work',
       items: [
-        { view: 'site', label: 'Work Orders', icon: 'ClipboardList' },
-        { view: 'site', label: 'Timesheets', icon: 'Timer' },
-        { view: 'site', label: 'Payments', icon: 'CreditCard' },
-        { view: 'site', label: 'Documents', icon: 'FolderOpen' },
+        { view: 'external', label: 'Work Orders', icon: 'ClipboardList' },
+        { view: 'external', label: 'Timesheets', icon: 'Timer' },
+        { view: 'external', label: 'Payments', icon: 'CreditCard' },
+        { view: 'external', label: 'Documents', icon: 'FolderOpen' },
       ],
     },
     {
@@ -519,6 +528,75 @@ const ROLES_SIDEBAR_CONFIG: Record<string, SidebarMenuSection[]> = {
 }
 
 // Communication section added to every role
+// ========================
+// Label → Tab ID mapping for panels
+// ========================
+const LABEL_TAB_MAP: Record<string, string | undefined> = {
+  // Procurement
+  'Vendor Management': 'vendors',
+  'Purchase Orders': 'purchase-orders',
+  'Material Management': 'materials',
+  'Quotations': 'quotations',
+  'Comparisons': 'comparisons',
+  // HR
+  'Employee Management': 'employees',
+  'Attendance': 'attendance',
+  'Payroll': 'payroll',
+  'Recruitment': 'recruitment',
+  // Finance
+  'Invoices': 'invoices',
+  'Payment Approval': 'payment-approval',
+  'Budget': 'budget',
+  'Budget Management': 'budget',
+  'Financial Reports': 'financial-reports',
+  // QA
+  'Quality Checks': 'quality-checks',
+  'Test Records': 'test-records',
+  'NCR Management': 'ncr',
+  'NCR': 'ncr',
+  'Quality Audits': 'audits',
+  // Safety
+  'Safety Inspections': 'inspections',
+  'Incident Reporting': 'incidents',
+  'Near Miss Reporting': 'near-miss',
+  'Near Miss': 'near-miss',
+  'Safety Training': 'training',
+  'Safety Documents': 'documents',
+  // Store
+  'Inventory Management': 'inventory',
+  'Material Request': 'material-request',
+  'Material Requests': 'material-request',
+  'Goods Receipt': 'goods-receipt',
+  'Stock Reports': 'stock-reports',
+  // Site
+  'Site Diary': 'diary',
+  'Daily Planning': 'dashboard',
+  'Site Reports': 'diary',
+  'Labour Management': 'labour',
+  'RFI': 'rfi',
+  'RFI Response': 'rfi',
+  'Technical Queries': 'technical-queries',
+  'Method Statements': 'method-statements',
+  'Site Photos': 'photos',
+  'Punch Items': 'punch',
+  'Materials': 'materials',
+  // Corporate
+  'Financial Overview': 'financial',
+  'Team Overview': 'team',
+  'Procurement Overview': 'procurement',
+  // External
+  'Payments': 'payments',
+  'Documents': 'documents',
+  'My Projects': 'projects',
+  'Drawings': 'drawings',
+  'Inspection': 'inspection',
+  'Design Review': 'design-review',
+  'Work Orders': 'work-orders',
+  'Timesheets': 'timesheets',
+  'RFI Response': 'rfi',
+  'Communication': 'communication',
+}
+
 const COMM_SECTION: SidebarMenuSection = {
   label: 'Communication',
   items: [
@@ -556,13 +634,14 @@ function SubMenu({
   item: SidebarMenuItem
   collapsed: boolean
   currentView: ViewType
-  onNav: (view: ViewType) => void
+  onNav: (view: ViewType, tab?: string) => void
 }) {
   const [open, setOpen] = useState(false)
   const Icon = iconMap[item.icon] || LayoutDashboard
   const hasChildren = item.children && item.children.length > 0
   const isActive = !hasChildren && currentView === item.view
   const isChildActive = hasChildren && item.children!.some((c) => c.view === currentView)
+  const tab = item.tab || LABEL_TAB_MAP[item.label]
 
   const btn = (
     <button
@@ -570,7 +649,7 @@ function SubMenu({
         if (hasChildren) {
           setOpen(!open)
         } else {
-          onNav(item.view)
+          onNav(item.view, tab)
         }
       }}
       className={cn(
@@ -632,10 +711,11 @@ function SubMenu({
               {item.children!.map((child) => {
                 const ChildIcon = iconMap[child.icon || 'ListTodo'] || ListTodo
                 const childActive = currentView === child.view
+                const childTab = child.tab || LABEL_TAB_MAP[child.label]
                 const childBtn = (
                   <button
                     key={`${item.view}-${child.view}-${child.label}`}
-                    onClick={() => onNav(child.view)}
+                    onClick={() => onNav(child.view, childTab)}
                     className={cn(
                       'w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-all duration-200',
                       childActive
@@ -667,6 +747,7 @@ export function Sidebar() {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   const setCurrentView = useAppStore((s) => s.setCurrentView)
+  const setPanelTab = useAppStore((s) => s.setPanelTab)
   const { role } = usePermissions()
 
   const [badgeCounts, setBadgeCounts] = useState<BadgeCounts>({})
@@ -715,8 +796,9 @@ export function Sidebar() {
     sections = [...sections, SETTINGS_ITEM]
   }
 
-  const handleNav = (view: ViewType) => {
+  const handleNav = (view: ViewType, tab?: string) => {
     setCurrentView(view)
+    setPanelTab(tab || null)
     setMobileOpen(false)
   }
 
@@ -755,11 +837,12 @@ export function Sidebar() {
 
             const Icon = iconMap[item.icon] || LayoutDashboard
             const isActive = currentView === item.view
+            const itemTab = item.tab || LABEL_TAB_MAP[item.label]
 
             const btn = (
               <button
                 key={`${item.view}-${item.label}`}
-                onClick={() => handleNav(item.view)}
+                onClick={() => handleNav(item.view, itemTab)}
                 className={cn(
                   'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative',
                   isActive

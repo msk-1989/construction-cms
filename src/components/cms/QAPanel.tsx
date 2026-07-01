@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ClipboardCheck, TestTubes, AlertTriangle, ShieldCheck, Plus, Search, Filter,
@@ -28,6 +28,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
+import { useAppStore } from '@/store/useAppStore'
 
 // ========================
 // Types
@@ -283,6 +284,15 @@ const TABS = [
 // ========================
 export function QAPanel() {
   const [activeTab, setActiveTab] = useState('quality-checks')
+  const activePanelTab = useAppStore((s) => s.activePanelTab)
+  const setPanelTab = useAppStore((s) => s.setPanelTab)
+  useEffect(() => {
+    if (activePanelTab && TABS.some(t => t.id === activePanelTab)) {
+      const id = requestAnimationFrame(() => { setActiveTab(activePanelTab); setPanelTab(null) }); return () => cancelAnimationFrame(id)
+    }
+  }, [activePanelTab, setPanelTab])
+  const currentTab = activePanelTab && TABS.some(t => t.id === activePanelTab) ? activePanelTab : activeTab
+  const handleTabChange = (tab: string) => { setActiveTab(tab); if (activePanelTab) setPanelTab(null) }
   const [search, setSearch] = useState('')
   const [filterResult, setFilterResult] = useState<string>('all')
   const [ncrSearch, setNcrSearch] = useState('')
@@ -501,7 +511,7 @@ export function QAPanel() {
         </div>
       </motion.div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={currentTab} onValueChange={handleTabChange}>
         <TabsList className="bg-muted/50 p-1 h-auto flex-wrap gap-1">
           {TABS.map((tab) => (
             <TabsTrigger

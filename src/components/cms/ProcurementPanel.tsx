@@ -29,6 +29,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useAppStore } from '@/store/useAppStore'
 
 // ========================
 // Types
@@ -438,6 +439,15 @@ const TABS = [
 
 export function ProcurementPanel() {
   const [activeTab, setActiveTab] = useState('vendors')
+  const activePanelTab = useAppStore((s) => s.activePanelTab)
+  const setPanelTab = useAppStore((s) => s.setPanelTab)
+  useEffect(() => {
+    if (activePanelTab && TABS.some(t => t.id === activePanelTab)) {
+      const id = requestAnimationFrame(() => { setActiveTab(activePanelTab); setPanelTab(null) }); return () => cancelAnimationFrame(id)
+    }
+  }, [activePanelTab, setPanelTab])
+  const currentTab = activePanelTab && TABS.some(t => t.id === activePanelTab) ? activePanelTab : activeTab
+  const handleTabChange = (tab: string) => { setActiveTab(tab); if (activePanelTab) setPanelTab(null) }
 
   // ========================
   // Vendors State
@@ -704,7 +714,7 @@ export function ProcurementPanel() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={currentTab} onValueChange={handleTabChange}>
         <TabsList className="bg-muted/50 p-1 h-auto flex-wrap gap-1">
           {TABS.map((tab) => (
             <TabsTrigger

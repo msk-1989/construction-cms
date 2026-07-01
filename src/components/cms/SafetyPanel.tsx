@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ShieldAlert, AlertOctagon, AlertTriangle, GraduationCap, FileCheck, Plus, Search,
+  ShieldAlert, AlertOctagon, AlertTriangle, AlertCircle, GraduationCap, FileCheck, Plus, Search,
   CheckCircle2, XCircle, Clock, Calendar, User, FileText, Eye, TrendingUp,
   ChevronDown, BarChart3, Upload, Users, Award, Shield, ClipboardCheck,
   HardHat, Flame, Zap, TriangleAlert, Droplets, Construction, Wind, DoorOpen,
@@ -31,6 +31,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useAppStore } from '@/store/useAppStore'
 
 // ========================
 // Types
@@ -331,6 +332,15 @@ function CircularScore({ score, size = 120, label }: { score: number; size?: num
 // ========================
 export function SafetyPanel() {
   const [activeTab, setActiveTab] = useState('inspections')
+  const activePanelTab = useAppStore((s) => s.activePanelTab)
+  const setPanelTab = useAppStore((s) => s.setPanelTab)
+  useEffect(() => {
+    if (activePanelTab && TABS.some(t => t.id === activePanelTab)) {
+      const id = requestAnimationFrame(() => { setActiveTab(activePanelTab); setPanelTab(null) }); return () => cancelAnimationFrame(id)
+    }
+  }, [activePanelTab, setPanelTab])
+  const currentTab = activePanelTab && TABS.some(t => t.id === activePanelTab) ? activePanelTab : activeTab
+  const handleTabChange = (tab: string) => { setActiveTab(tab); if (activePanelTab) setPanelTab(null) }
   const [search, setSearch] = useState('')
   const [inspections, setInspections] = useState<SafetyInspection[]>(SAMPLE_INSPECTIONS)
   const [nearMissReports, setNearMissReports] = useState<NearMiss[]>(SAMPLE_NEAR_MISS)
@@ -547,7 +557,7 @@ export function SafetyPanel() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={currentTab} onValueChange={handleTabChange}>
         <TabsList className="bg-muted/50 p-1 h-auto flex-wrap gap-1">
           {TABS.map((tab) => (
             <TabsTrigger

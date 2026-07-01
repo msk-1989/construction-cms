@@ -53,6 +53,18 @@ export function CorporatePanel() {
   const user = useAuthStore((s) => s.user)
   const setCurrentView = useAppStore((s) => s.setCurrentView)
   const setSelectedProjectId = useAppStore((s) => s.setSelectedProjectId)
+  const activePanelTab = useAppStore((s) => s.activePanelTab)
+  const setPanelTab = useAppStore((s) => s.setPanelTab)
+
+  const CORP_TABS = ['dashboard', 'projects', 'financial', 'team', 'procurement']
+  const [activeTab, setActiveTab] = useState('dashboard')
+  useEffect(() => {
+    if (activePanelTab && CORP_TABS.includes(activePanelTab)) {
+      const id = requestAnimationFrame(() => { setActiveTab(activePanelTab); setPanelTab(null) }); return () => cancelAnimationFrame(id)
+    }
+  }, [activePanelTab, setPanelTab])
+  const currentTab = activePanelTab && CORP_TABS.includes(activePanelTab) ? activePanelTab : activeTab
+  const handleTabChange = (tab: string) => { setActiveTab(tab); if (activePanelTab) setPanelTab(null) }
 
   const [projects, setProjects] = useState<Project[]>([])
   const [team, setTeam] = useState<User[]>([])
@@ -656,7 +668,7 @@ export function CorporatePanel() {
         <p className="text-muted-foreground mt-1 text-sm">High-level overview for executive management.</p>
       </motion.div>
 
-      <Tabs defaultValue="dashboard" className="space-y-4">
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList className="bg-muted/50 p-1 h-auto flex-wrap gap-1">
           <TabsTrigger value="dashboard" className="text-xs gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
             <BarChart3 className="h-3.5 w-3.5" /> Dashboard

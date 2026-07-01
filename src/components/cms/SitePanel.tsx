@@ -6,7 +6,8 @@ import {
   ClipboardList, MessageSquare, AlertTriangle, Package, Shield, Camera,
   Plus, ChevronRight, CheckCircle2, Circle, Clock, Sun, Cloud, CloudRain,
   Thermometer, Users, FileText, Filter, Loader2, X,
-  HardHat, Eye, Zap,
+  HardHat, Eye, Zap, UsersRound, FileSearch, Wrench, Ruler, Search,
+  CalendarDays, ClipboardCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -25,6 +26,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAppStore } from '@/store/useAppStore'
 import type { Project, Task, DailyLog, RFI, PunchItem, Material } from '@/types/cms'
 
 const container = {
@@ -75,6 +77,18 @@ export function SitePanel() {
   const [punchItems, setPunchItems] = useState<PunchItem[]>([])
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('dashboard')
+  const activePanelTab = useAppStore((s) => s.activePanelTab)
+  const setPanelTab = useAppStore((s) => s.setPanelTab)
+  const SITE_TABS = ['dashboard','diary','rfi','punch','labour','technical-queries','method-statements','photos','safety','materials']
+  useEffect(() => {
+    if (activePanelTab && SITE_TABS.includes(activePanelTab)) {
+      const id = requestAnimationFrame(() => { setActiveTab(activePanelTab); setPanelTab(null) })
+      return () => cancelAnimationFrame(id)
+    }
+  }, [activePanelTab, setPanelTab])
+  const currentTab = activePanelTab && SITE_TABS.includes(activePanelTab) ? activePanelTab : activeTab
+  const handleTabChange = (tab: string) => { setActiveTab(tab); if (activePanelTab) setPanelTab(null) }
 
   // Dialog states
   const [logDialogOpen, setLogDialogOpen] = useState(false)
@@ -623,6 +637,308 @@ export function SitePanel() {
     </div>
   )
 
+  // ========================
+  // Labour Management Tab
+  // ========================
+  const LABOUR_DATA = useMemo(() => [
+    { id: 'l1', name: 'Raju Kumar', trade: 'Mason', site: 'Block A', status: 'Present', hours: 8, date: '2025-01-15' },
+    { id: 'l2', name: 'Suresh Yadav', trade: 'Electrician', site: 'Block B', status: 'Present', hours: 9, date: '2025-01-15' },
+    { id: 'l3', name: 'Anil Sharma', trade: 'Plumber', site: 'Block A', status: 'Absent', hours: 0, date: '2025-01-15' },
+    { id: 'l4', name: 'Mohan Singh', trade: 'Welder', site: 'Block C', status: 'OT', hours: 10, date: '2025-01-15' },
+    { id: 'l5', name: 'Ramesh Patel', trade: 'Carpenter', site: 'Block A', status: 'Present', hours: 8, date: '2025-01-15' },
+    { id: 'l6', name: 'Deepak Verma', trade: 'Painter', site: 'Block B', status: 'Leave', hours: 0, date: '2025-01-15' },
+    { id: 'l7', name: 'Vijay Thakur', trade: 'Mason', site: 'Block C', status: 'Present', hours: 8, date: '2025-01-15' },
+    { id: 'l8', name: 'Arun Tiwari', trade: 'Steel Fixer', site: 'Block A', status: 'Present', hours: 9, date: '2025-01-15' },
+    { id: 'l9', name: 'Prakash Jha', trade: 'Crane Operator', site: 'Block B', status: 'Present', hours: 8, date: '2025-01-15' },
+    { id: 'l10', name: 'Sunil Das', trade: 'Mason', site: 'Block A', status: 'OT', hours: 10, date: '2025-01-15' },
+    { id: 'l11', name: 'Gopal Rao', trade: 'Plumber', site: 'Block C', status: 'Present', hours: 8, date: '2025-01-15' },
+    { id: 'l12', name: 'Krishna Murthy', trade: 'Electrician', site: 'Block B', status: 'Present', hours: 8, date: '2025-01-15' },
+  ], [])
+
+  const labourStats = useMemo(() => ({
+    total: LABOUR_DATA.length,
+    present: LABOUR_DATA.filter(l => l.status === 'Present').length,
+    onLeave: LABOUR_DATA.filter(l => l.status === 'Leave').length,
+    ot: LABOUR_DATA.filter(l => l.status === 'OT').length,
+    totalHours: LABOUR_DATA.reduce((a, l) => a + l.hours, 0),
+  }), [LABOUR_DATA])
+
+  const LabourTab = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Labour', value: labourStats.total, icon: UsersRound, color: 'from-amber-500 to-orange-500' },
+          { label: 'Present Today', value: labourStats.present, icon: CheckCircle2, color: 'from-emerald-500 to-green-600' },
+          { label: 'On Leave', value: labourStats.onLeave, icon: Clock, color: 'from-sky-500 to-blue-500' },
+          { label: 'OT Hours', value: `${labourStats.totalHours}h`, icon: Zap, color: 'from-violet-500 to-purple-500' },
+        ].map((s) => (
+          <motion.div key={s.label} variants={item}>
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div><p className="text-xs text-muted-foreground font-medium">{s.label}</p><p className="text-2xl font-bold mt-1">{s.value}</p></div>
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br text-white shadow-lg', s.color)}><s.icon className="w-5 h-5" /></div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+      <motion.div variants={item}>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">Trade-wise Summary</CardTitle></CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {['Mason', 'Electrician', 'Plumber', 'Welder', 'Carpenter', 'Painter'].map(trade => {
+                const count = LABOUR_DATA.filter(l => l.trade === trade && l.status !== 'Leave' && l.status !== 'Absent').length
+                return <div key={trade} className="p-3 rounded-lg bg-muted/30 text-center">
+                  <p className="text-xs text-muted-foreground">{trade}</p><p className="text-lg font-bold text-amber-600">{count}</p>
+                </div>
+              }).filter(Boolean)}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+      <motion.div variants={item}>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">Labour Attendance</CardTitle></CardHeader>
+          <CardContent className="pt-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b">
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Worker</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Trade</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Site</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Status</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Hours</th>
+                </tr></thead>
+                <tbody>
+                  {LABOUR_DATA.map(l => (
+                    <tr key={l.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="py-2 px-3 text-sm font-medium">{l.name}</td>
+                      <td className="py-2 px-3 text-xs text-muted-foreground">{l.trade}</td>
+                      <td className="py-2 px-3 text-xs text-muted-foreground">{l.site}</td>
+                      <td className="py-2 px-3"><Badge variant="outline" className={cn('text-[10px]', l.status === 'Present' ? 'bg-emerald-100 text-emerald-700' : l.status === 'OT' ? 'bg-violet-100 text-violet-700' : l.status === 'Leave' ? 'bg-sky-100 text-sky-700' : 'bg-red-100 text-red-700')}>{l.status}</Badge></td>
+                      <td className="py-2 px-3 text-sm">{l.hours}h</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  )
+
+  // ========================
+  // Technical Queries Tab
+  // ========================
+  const [tqSearch, setTqSearch] = useState('')
+  const TECH_QUERIES = useMemo(() => [
+    { id: 'tq1', ref: 'TQ-001', title: 'Foundation depth clarification', project: 'Skyline Tower', raisedBy: 'Amit Patel', priority: 'HIGH', status: 'Open', dueDate: '2025-01-20', age: 5 },
+    { id: 'tq2', ref: 'TQ-002', title: 'Steel reinforcement spacing', project: 'Metro Bridge', raisedBy: 'Vikram Singh', priority: 'MEDIUM', status: 'In Review', dueDate: '2025-01-22', age: 3 },
+    { id: 'tq3', ref: 'TQ-003', title: 'Waterproofing membrane specification', project: 'Green Valley', raisedBy: 'Priya Sharma', priority: 'HIGH', status: 'Answered', dueDate: '2025-01-18', age: 12 },
+    { id: 'tq4', ref: 'TQ-004', title: 'HVAC duct routing conflict', project: 'Skyline Tower', raisedBy: 'Amit Patel', priority: 'LOW', status: 'Closed', dueDate: '2025-01-15', age: 20 },
+    { id: 'tq5', ref: 'TQ-005', title: 'Concrete mix design approval', project: 'Metro Bridge', raisedBy: 'Rajesh Kumar', priority: 'HIGH', status: 'Open', dueDate: '2025-01-25', age: 1 },
+    { id: 'tq6', ref: 'TQ-006', title: 'Curtain wall fixing detail', project: 'Skyline Tower', raisedBy: 'Suresh Patel', priority: 'MEDIUM', status: 'In Review', dueDate: '2025-01-28', age: 2 },
+    { id: 'tq7', ref: 'TQ-007', title: 'Drainage slope at basement', project: 'Green Valley', raisedBy: 'Anil Sharma', priority: 'MEDIUM', status: 'Answered', dueDate: '2025-01-19', age: 8 },
+    { id: 'tq8', ref: 'TQ-008', title: 'Fire escape stair width', project: 'Metro Bridge', raisedBy: 'Vikram Singh', priority: 'HIGH', status: 'Open', dueDate: '2025-01-30', age: 0 },
+  ], [])
+  const filteredTQ = useMemo(() => TECH_QUERIES.filter(tq => !tqSearch || tq.title.toLowerCase().includes(tqSearch.toLowerCase()) || tq.ref.toLowerCase().includes(tqSearch.toLowerCase())), [TECH_QUERIES, tqSearch])
+  const tqStatusColor: Record<string, string> = { Open: 'bg-amber-100 text-amber-700', 'In Review': 'bg-sky-100 text-sky-700', Answered: 'bg-emerald-100 text-emerald-700', Closed: 'bg-gray-100 text-gray-500' }
+
+  const TechnicalQueriesTab = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Queries', value: TECH_QUERIES.length, icon: FileSearch, color: 'from-amber-500 to-orange-500' },
+          { label: 'Open', value: TECH_QUERIES.filter(q => q.status === 'Open').length, icon: AlertTriangle, color: 'from-red-500 to-rose-500' },
+          { label: 'Answered', value: TECH_QUERIES.filter(q => q.status === 'Answered').length, icon: CheckCircle2, color: 'from-emerald-500 to-green-600' },
+          { label: 'Avg Response', value: '8d', icon: Clock, color: 'from-sky-500 to-blue-500' },
+        ].map((s) => (
+          <motion.div key={s.label} variants={item}>
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div><p className="text-xs text-muted-foreground font-medium">{s.label}</p><p className="text-2xl font-bold mt-1">{s.value}</p></div>
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br text-white shadow-lg', s.color)}><s.icon className="w-5 h-5" /></div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+      <motion.div variants={item}>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">Technical Queries</CardTitle>
+              <div className="relative w-56"><Input placeholder="Search queries..." value={tqSearch} onChange={e => setTqSearch(e.target.value)} className="h-8 text-xs pl-8" /><Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" /></div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b">
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Ref#</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Title</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Priority</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Status</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Age</th>
+                </tr></thead>
+                <tbody>
+                  {filteredTQ.map(tq => (
+                    <tr key={tq.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="py-2 px-3 text-xs font-mono text-muted-foreground">{tq.ref}</td>
+                      <td className="py-2 px-3"><p className="text-sm font-medium truncate max-w-[250px]">{tq.title}</p><p className="text-xs text-muted-foreground">{tq.raisedBy} · {tq.project}</p></td>
+                      <td className="py-2 px-3"><Badge variant="outline" className={cn('text-[10px]', tq.priority === 'HIGH' ? 'bg-red-100 text-red-700' : tq.priority === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500')}>{tq.priority}</Badge></td>
+                      <td className="py-2 px-3"><Badge variant="outline" className={cn('text-[10px]', tqStatusColor[tq.status] || '')}>{tq.status}</Badge></td>
+                      <td className="py-2 px-3 text-xs text-muted-foreground">{tq.age}d</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  )
+
+  // ========================
+  // Method Statements Tab
+  // ========================
+  const METHOD_STATEMENTS = useMemo(() => [
+    { id: 'ms1', ref: 'MS-001', title: 'Excavation & Earthwork', activity: 'Foundation', project: 'Metro Bridge', status: 'Approved', revision: 'Rev 2', date: '2025-01-10', approvedBy: 'Rajesh Kumar' },
+    { id: 'ms2', ref: 'MS-002', title: 'Concrete Pouring - Column', activity: 'Superstructure', project: 'Skyline Tower', status: 'Approved', revision: 'Rev 1', date: '2025-01-08', approvedBy: 'Vikram Singh' },
+    { id: 'ms3', ref: 'MS-003', title: 'Steel Erection Sequence', activity: 'Structural Steel', project: 'Metro Bridge', status: 'Submitted', revision: 'Rev 1', date: '2025-01-14', approvedBy: '—' },
+    { id: 'ms4', ref: 'MS-004', title: 'Waterproofing Application', activity: 'Basement', project: 'Green Valley', status: 'Pending Review', revision: 'Rev 0', date: '2025-01-15', approvedBy: '—' },
+    { id: 'ms5', ref: 'MS-005', title: ' Brick Masonry Works', activity: 'Masonry', project: 'Skyline Tower', status: 'Approved', revision: 'Rev 3', date: '2025-01-05', approvedBy: 'Priya Sharma' },
+    { id: 'ms6', ref: 'MS-006', title: 'Plumbing & Sanitary Installation', activity: 'MEP', project: 'Green Valley', status: 'Draft', revision: 'Rev 0', date: '2025-01-15', approvedBy: '—' },
+    { id: 'ms7', ref: 'MS-007', title: 'HVAC Duct Installation', activity: 'MEP', project: 'Skyline Tower', status: 'Rejected', revision: 'Rev 1', date: '2025-01-12', approvedBy: '—' },
+    { id: 'ms8', ref: 'MS-008', title: 'Plastering & Finishing', activity: 'Finishing', project: 'Green Valley', status: 'Submitted', revision: 'Rev 1', date: '2025-01-13', approvedBy: '—' },
+  ], [])
+  const msStatusColor: Record<string, string> = { Draft: 'bg-gray-100 text-gray-600', 'Pending Review': 'bg-amber-100 text-amber-700', Submitted: 'bg-sky-100 text-sky-700', Approved: 'bg-emerald-100 text-emerald-700', Rejected: 'bg-red-100 text-red-700' }
+
+  const MethodStatementsTab = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Statements', value: METHOD_STATEMENTS.length, icon: ClipboardList, color: 'from-amber-500 to-orange-500' },
+          { label: 'Approved', value: METHOD_STATEMENTS.filter(m => m.status === 'Approved').length, icon: CheckCircle2, color: 'from-emerald-500 to-green-600' },
+          { label: 'Pending Review', value: METHOD_STATEMENTS.filter(m => m.status === 'Pending Review' || m.status === 'Submitted').length, icon: Clock, color: 'from-sky-500 to-blue-500' },
+          { label: 'Under Revision', value: METHOD_STATEMENTS.filter(m => m.revision !== 'Rev 0').length, icon: Wrench, color: 'from-violet-500 to-purple-500' },
+        ].map((s) => (
+          <motion.div key={s.label} variants={item}>
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div><p className="text-xs text-muted-foreground font-medium">{s.label}</p><p className="text-2xl font-bold mt-1">{s.value}</p></div>
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br text-white shadow-lg', s.color)}><s.icon className="w-5 h-5" /></div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+      <motion.div variants={item}>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">Method Statements</CardTitle></CardHeader>
+          <CardContent className="pt-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b">
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Ref#</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Title</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Activity</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Revision</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Status</th>
+                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground text-xs">Approved By</th>
+                </tr></thead>
+                <tbody>
+                  {METHOD_STATEMENTS.map(ms => (
+                    <tr key={ms.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="py-2 px-3 text-xs font-mono text-muted-foreground">{ms.ref}</td>
+                      <td className="py-2 px-3"><p className="text-sm font-medium">{ms.title}</p><p className="text-xs text-muted-foreground">{ms.project}</p></td>
+                      <td className="py-2 px-3 text-xs text-muted-foreground">{ms.activity}</td>
+                      <td className="py-2 px-3"><Badge variant="outline" className="text-[10px]">{ms.revision}</Badge></td>
+                      <td className="py-2 px-3"><Badge variant="outline" className={cn('text-[10px]', msStatusColor[ms.status] || '')}>{ms.status}</Badge></td>
+                      <td className="py-2 px-3 text-xs text-muted-foreground">{ms.approvedBy}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  )
+
+  // ========================
+  // Site Photos Tab
+  // ========================
+  const SITE_PHOTOS = useMemo(() => [
+    { id: 'sp1', title: 'Foundation Excavation Progress', category: 'Progress', location: 'Block A - Grid A1-A5', date: '2025-01-15', desc: 'Excavation work in progress at Block A foundation area' },
+    { id: 'sp2', title: 'Column Reinforcement', category: 'Progress', location: 'Block B - Level 3', date: '2025-01-14', desc: 'Rebar placement for column C-15 to C-20' },
+    { id: 'sp3', title: 'Crack in Beam B-12', category: 'Issue', location: 'Block A - Level 2', date: '2025-01-14', desc: 'Hairline crack observed during inspection' },
+    { id: 'sp4', title: 'Plumbing Rough-in', category: 'Progress', location: 'Block C - Ground Floor', date: '2025-01-13', desc: 'Concealed plumbing pipe installation' },
+    { id: 'sp5', title: 'Safety Compliance Check', category: 'Inspection', location: 'Site Entry', date: '2025-01-15', desc: 'PPE compliance and safety barriers check' },
+    { id: 'sp6', title: 'Completed Facade Work', category: 'Completed', location: 'Tower A - South Face', date: '2025-01-12', desc: 'Glass facade installation completed' },
+    { id: 'sp7', title: 'Steel Erection at Level 5', category: 'Progress', location: 'Metro Bridge - Pier 3', date: '2025-01-11', desc: 'Steel girder erection in progress' },
+    { id: 'sp8', title: 'Water Seepage in Basement', category: 'Issue', location: 'Block B - B2 Level', date: '2025-01-10', desc: 'Water seepage observed at construction joint' },
+    { id: 'sp9', title: 'Site Overview - Aerial', category: 'Site', location: 'Main Site', date: '2025-01-09', desc: 'Aerial view of overall site progress' },
+    { id: 'sp10', title: 'Concrete Pouring - Slab S-8', category: 'Progress', location: 'Block A - Level 4', date: '2025-01-08', desc: 'Concrete pouring for slab panel S-8' },
+    { id: 'sp11', title: 'Electrical Conduits', category: 'Progress', location: 'Block C - Level 2', date: '2025-01-07', desc: 'Concealed electrical conduit installation' },
+    { id: 'sp12', title: 'Finished Lobby Area', category: 'Completed', location: 'Tower A - Ground Floor', date: '2025-01-06', desc: 'Marble flooring and wall finishing completed' },
+  ], [])
+  const photoCategoryColor: Record<string, string> = { Progress: 'bg-sky-100 text-sky-700', Inspection: 'bg-amber-100 text-amber-700', Issue: 'bg-red-100 text-red-700', Site: 'bg-gray-100 text-gray-600', Completed: 'bg-emerald-100 text-emerald-700' }
+
+  const SitePhotosTab = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Photos', value: SITE_PHOTOS.length, icon: Camera, color: 'from-amber-500 to-orange-500' },
+          { label: 'This Week', value: SITE_PHOTOS.filter(p => { const d = new Date(p.date); const now = new Date(); return (now.getTime() - d.getTime()) < 7*86400000 }).length, icon: Clock, color: 'from-sky-500 to-blue-500' },
+          { label: 'Progress', value: SITE_PHOTOS.filter(p => p.category === 'Progress').length, icon: Eye, color: 'from-emerald-500 to-green-600' },
+          { label: 'Issues', value: SITE_PHOTOS.filter(p => p.category === 'Issue').length, icon: AlertTriangle, color: 'from-red-500 to-rose-500' },
+        ].map((s) => (
+          <motion.div key={s.label} variants={item}>
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div><p className="text-xs text-muted-foreground font-medium">{s.label}</p><p className="text-2xl font-bold mt-1">{s.value}</p></div>
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br text-white shadow-lg', s.color)}><s.icon className="w-5 h-5" /></div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+      <motion.div variants={item}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {SITE_PHOTOS.map(photo => (
+            <Card key={photo.id} className="border-0 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+              <div className={cn('h-36 flex items-center justify-center', photo.category === 'Issue' ? 'bg-red-50 dark:bg-red-900/10' : photo.category === 'Progress' ? 'bg-sky-50 dark:bg-sky-900/10' : photo.category === 'Completed' ? 'bg-emerald-50 dark:bg-emerald-900/10' : 'bg-amber-50 dark:bg-amber-900/10')}>
+                <Camera className="h-12 w-12 text-muted-foreground/20" />
+              </div>
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium line-clamp-1">{photo.title}</p>
+                  <Badge variant="outline" className={cn('text-[10px] shrink-0', photoCategoryColor[photo.category] || '')}>{photo.category}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">{photo.location}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">{photo.desc}</p>
+                <p className="text-[10px] text-muted-foreground/60">{photo.date}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  )
+
   if (loading && !selectedProjectId) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -688,19 +1004,31 @@ export function SitePanel() {
           <p className="text-muted-foreground">Select a project to view site operations</p>
         </Card>
       ) : (
-        <Tabs defaultValue="dashboard" className="space-y-4">
+        <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList className="bg-muted/50 p-1 h-auto flex-wrap gap-1">
             <TabsTrigger value="dashboard" className="text-xs gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <ClipboardList className="h-3.5 w-3.5" /> Dashboard
             </TabsTrigger>
             <TabsTrigger value="diary" className="text-xs gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <FileText className="h-3.5 w-3.5" /> Site Diary
+              <CalendarDays className="h-3.5 w-3.5" /> Site Diary
             </TabsTrigger>
             <TabsTrigger value="rfi" className="text-xs gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <MessageSquare className="h-3.5 w-3.5" /> RFIs
             </TabsTrigger>
             <TabsTrigger value="punch" className="text-xs gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <AlertTriangle className="h-3.5 w-3.5" /> Punch Items
+            </TabsTrigger>
+            <TabsTrigger value="labour" className="text-xs gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <UsersRound className="h-3.5 w-3.5" /> Labour
+            </TabsTrigger>
+            <TabsTrigger value="technical-queries" className="text-xs gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <FileSearch className="h-3.5 w-3.5" /> Tech Queries
+            </TabsTrigger>
+            <TabsTrigger value="method-statements" className="text-xs gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <ClipboardCheck className="h-3.5 w-3.5" /> Method Stmts
+            </TabsTrigger>
+            <TabsTrigger value="photos" className="text-xs gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Camera className="h-3.5 w-3.5" /> Photos
             </TabsTrigger>
             <TabsTrigger value="safety" className="text-xs gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <Shield className="h-3.5 w-3.5" /> Safety & QA
@@ -715,6 +1043,10 @@ export function SitePanel() {
             <TabsContent value="diary"><SiteDiaryTab /></TabsContent>
             <TabsContent value="rfi"><RFITab /></TabsContent>
             <TabsContent value="punch"><PunchItemsTab /></TabsContent>
+            <TabsContent value="labour"><LabourTab /></TabsContent>
+            <TabsContent value="technical-queries"><TechnicalQueriesTab /></TabsContent>
+            <TabsContent value="method-statements"><MethodStatementsTab /></TabsContent>
+            <TabsContent value="photos"><SitePhotosTab /></TabsContent>
             <TabsContent value="safety"><SafetyQATab /></TabsContent>
             <TabsContent value="materials"><MaterialsTab /></TabsContent>
           </motion.div>

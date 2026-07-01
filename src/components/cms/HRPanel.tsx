@@ -32,6 +32,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
+import { useAppStore } from '@/store/useAppStore'
 import { Progress } from '@/components/ui/progress'
 import { getRoleLabel, getRoleBadgeClass } from '@/lib/permissions'
 import type { User } from '@/types/cms'
@@ -269,6 +270,15 @@ function StatCard({ icon: Icon, label, value, trend, trendUp }: {
 // ========================
 export function HRPanel() {
   const [activeTab, setActiveTab] = useState('employees')
+  const activePanelTab = useAppStore((s) => s.activePanelTab)
+  const setPanelTab = useAppStore((s) => s.setPanelTab)
+  useEffect(() => {
+    if (activePanelTab && TABS.some(t => t.id === activePanelTab)) {
+      const id = requestAnimationFrame(() => { setActiveTab(activePanelTab); setPanelTab(null) }); return () => cancelAnimationFrame(id)
+    }
+  }, [activePanelTab, setPanelTab])
+  const currentTab = activePanelTab && TABS.some(t => t.id === activePanelTab) ? activePanelTab : activeTab
+  const handleTabChange = (tab: string) => { setActiveTab(tab); if (activePanelTab) setPanelTab(null) }
 
   // Employee Management State
   const [employees, setEmployees] = useState<User[]>([])
@@ -1242,7 +1252,7 @@ export function HRPanel() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={currentTab} onValueChange={handleTabChange}>
         <TabsList className="bg-muted/50 p-1 h-auto flex-wrap gap-1">
           {TABS.map((tab) => (
             <TabsTrigger

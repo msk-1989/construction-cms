@@ -32,6 +32,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
+import { useAppStore } from '@/store/useAppStore'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -241,6 +242,15 @@ function StatCard({ icon: Icon, label, value, trend, trendUp, prefix, suffix }: 
 // ========================
 export function FinancePanel() {
   const [activeTab, setActiveTab] = useState('invoices')
+  const activePanelTab = useAppStore((s) => s.activePanelTab)
+  const setPanelTab = useAppStore((s) => s.setPanelTab)
+  useEffect(() => {
+    if (activePanelTab && TABS.some(t => t.id === activePanelTab)) {
+      const id = requestAnimationFrame(() => { setActiveTab(activePanelTab); setPanelTab(null) }); return () => cancelAnimationFrame(id)
+    }
+  }, [activePanelTab, setPanelTab])
+  const currentTab = activePanelTab && TABS.some(t => t.id === activePanelTab) ? activePanelTab : activeTab
+  const handleTabChange = (tab: string) => { setActiveTab(tab); if (activePanelTab) setPanelTab(null) }
 
   // Invoices State
   const [invoices, setInvoices] = useState<InvoiceRecord[]>(SAMPLE_INVOICES)
@@ -1129,7 +1139,7 @@ export function FinancePanel() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={currentTab} onValueChange={handleTabChange}>
         <TabsList className="bg-muted/50 p-1 h-auto flex-wrap gap-1">
           {TABS.map((tab) => (
             <TabsTrigger

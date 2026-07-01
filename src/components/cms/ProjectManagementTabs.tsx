@@ -53,7 +53,7 @@ function CrudSection<T extends { id: string }>({ title, icon, projectId, endpoin
     try { const r = await globalThis.fetch(`${endpoint}?projectId=${projectId}`); const d = await r.json(); if (d.success) setItems(d.data) } catch {}
   }, [endpoint, projectId])
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { if (!didFetch.current) { didFetch.current = true; load() } }, [load])
 
   const save = async () => {
@@ -224,7 +224,7 @@ function BoqSection({ projectId }: { projectId: string }) {
     try { const r = await globalThis.fetch(`/api/boq?projectId=${projectId}`); const d = await r.json(); if (d.success) setCategories(d.data) } catch {}
   }, [projectId])
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { if (!didFetch.current) { didFetch.current = true; load() } }, [load])
 
   const totalBoq = categories.reduce((s, c) => s + (c.items || []).reduce((is, i) => is + i.amount, 0), 0)
@@ -281,7 +281,7 @@ function QuotationsSection({ projectId }: { projectId: string }) {
   const [form, setForm] = useState({ referenceNo: '', title: '', description: '', vendorId: '', validUntil: '', terms: '', items: '' })
   const didFetch = useRef(false)
   const load = useCallback(async () => { try { const r = await globalThis.fetch(`/api/quotations?projectId=${projectId}`); const d = await r.json(); if (d.success) setItems(d.data) } catch {} }, [projectId])
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { if (!didFetch.current) { didFetch.current = true; load() } }, [load])
   const save = async () => {
     try {
@@ -317,7 +317,7 @@ function PaymentsSection({ projectId }: { projectId: string }) {
   const [form, setForm] = useState({ title: '', paymentType: 'INTERIM', amount: '', payeeName: '', paymentMode: 'BANK_TRANSFER', bankReference: '', description: '' })
   const didFetch = useRef(false)
   const load = useCallback(async () => { try { const r = await globalThis.fetch(`/api/payments?projectId=${projectId}`); const d = await r.json(); if (d.success) setItems(d.data) } catch {} }, [projectId])
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { if (!didFetch.current) { didFetch.current = true; load() } }, [load])
   const save = async () => {
     try { await globalThis.fetch('/api/payments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, amount: Number(form.amount), projectId, createdById: '' }) }); toast.success('Payment created'); setOpen(false); setForm({ title: '', paymentType: 'INTERIM', amount: '', payeeName: '', paymentMode: 'BANK_TRANSFER', bankReference: '', description: '' }); load() } catch { toast.error('Failed') }
@@ -342,7 +342,7 @@ function ReceiptsSection({ projectId }: { projectId: string }) {
   const [form, setForm] = useState({ title: '', amount: '', receivedFrom: '', paymentMode: 'BANK_TRANSFER', bankReference: '', description: '' })
   const didFetch = useRef(false)
   const load = useCallback(async () => { try { const r = await globalThis.fetch(`/api/receipts?projectId=${projectId}`); const d = await r.json(); if (d.success) setItems(d.data) } catch {} }, [projectId])
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { if (!didFetch.current) { didFetch.current = true; load() } }, [load])
   const save = async () => {
     try { await globalThis.fetch('/api/receipts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, amount: Number(form.amount), projectId, createdById: '' }) }); toast.success('Receipt created'); setOpen(false); setForm({ title: '', amount: '', receivedFrom: '', paymentMode: 'BANK_TRANSFER', bankReference: '', description: '' }); load() } catch { toast.error('Failed') }
@@ -361,7 +361,7 @@ function ContractsSection({ projectId }: { projectId: string }) {
   const [form, setForm] = useState({ title: '', contractType: 'LUMP_SUM', value: '', retainagePercent: '10', startDate: '', endDate: '', description: '', terms: '', vendorId: '' })
   const didFetch = useRef(false)
   const load = useCallback(async () => { try { const r = await globalThis.fetch(`/api/contracts?projectId=${projectId}`); const d = await r.json(); if (d.success) setItems(d.data) } catch {} }, [projectId])
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { if (!didFetch.current) { didFetch.current = true; load() } }, [load])
   const save = async () => {
     try { await globalThis.fetch('/api/contracts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, value: Number(form.value), retainagePercent: Number(form.retainagePercent), projectId, createdById: '' }) }); toast.success('Contract created'); setOpen(false); setForm({ title: '', contractType: 'LUMP_SUM', value: '', retainagePercent: '10', startDate: '', endDate: '', description: '', terms: '', vendorId: '' }); load() } catch { toast.error('Failed') }
@@ -386,7 +386,7 @@ function SubcontractorsSection({ projectId }: { projectId: string }) {
   const load = useCallback(async () => {
     try { const [a, s] = await Promise.all([globalThis.fetch(`/api/subcontractors/projects?projectId=${projectId}`), globalThis.fetch(`/api/subcontractors?projectId=${projectId}`)]); const da = await a.json(); const ds = await s.json(); if (da.success) setAssignments(da.data); if (ds.success) setSubcons(ds.data) } catch {}
   }, [projectId])
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { if (!didFetch.current) { didFetch.current = true; load() } }, [load])
   const assign = async () => {
     if (!form.subcontractorId) return
@@ -411,7 +411,7 @@ function PhotosSection({ projectId }: { projectId: string }) {
   const [form, setForm] = useState({ title: '', category: 'PROGRESS', location: '', description: '' })
   const didFetch = useRef(false)
   const load = useCallback(async () => { try { const r = await globalThis.fetch(`/api/photo-docs?projectId=${projectId}`); const d = await r.json(); if (d.success) setItems(d.data) } catch {} }, [projectId])
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { if (!didFetch.current) { didFetch.current = true; load() } }, [load])
   const save = async () => {
     if (!form.title) return
@@ -431,7 +431,7 @@ function RetainageSection({ projectId }: { projectId: string }) {
   const [form, setForm] = useState({ title: '', vendorName: '', waiverType: 'PARTIAL', amount: '', retainagePercent: '10', notes: '' })
   const didFetch = useRef(false)
   const load = useCallback(async () => { try { const r = await globalThis.fetch(`/api/retainage-waivers?projectId=${projectId}`); const d = await r.json(); if (d.success) setItems(d.data) } catch {} }, [projectId])
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { if (!didFetch.current) { didFetch.current = true; load() } }, [load])
   const save = async () => {
     try { await globalThis.fetch('/api/retainage-waivers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, amount: Number(form.amount), retainagePercent: Number(form.retainagePercent), projectId }) }); toast.success('Waiver created'); setOpen(false); setForm({ title: '', vendorName: '', waiverType: 'PARTIAL', amount: '', retainagePercent: '10', notes: '' }); load() } catch { toast.error('Failed') }
@@ -451,7 +451,7 @@ function POsSection({ projectId }: { projectId: string }) {
   const [form, setForm] = useState({ title: '', vendorId: '', deliveryDate: '', terms: '', items: '' })
   const didFetch = useRef(false)
   const load = useCallback(async () => { try { const r = await globalThis.fetch(`/api/purchase-orders?projectId=${projectId}`); const d = await r.json(); if (d.success) setItems(d.data) } catch {} }, [projectId])
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { if (!didFetch.current) { didFetch.current = true; load() } }, [load])
   const save = async () => {
     try {
@@ -475,7 +475,7 @@ function GrvSection({ projectId }: { projectId: string }) {
   const [form, setForm] = useState({ poId: '', title: '', invoiceNo: '', notes: '', items: '' })
   const didFetch = useRef(false)
   const load = useCallback(async () => { try { const r = await globalThis.fetch(`/api/grv?projectId=${projectId}`); const d = await r.json(); if (d.success) setItems(d.data) } catch {} }, [projectId])
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { if (!didFetch.current) { didFetch.current = true; load() } }, [load])
   const save = async () => {
     try {
