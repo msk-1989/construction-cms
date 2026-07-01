@@ -6,7 +6,7 @@ import {
   ShieldAlert, AlertOctagon, AlertTriangle, GraduationCap, FileCheck, Plus, Search,
   CheckCircle2, XCircle, Clock, Calendar, User, FileText, Eye, TrendingUp,
   ChevronDown, BarChart3, Upload, Users, Award, Shield, ClipboardCheck,
-  HardHat, Flame, Zap, TriangleAlert, Droplets, Crane, Wind, DoorOpen,
+  HardHat, Flame, Zap, TriangleAlert, Droplets, Construction, Wind, DoorOpen,
   Target, Activity, Wrench, Ban, Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -144,7 +144,7 @@ const INSPECTION_CHECKLIST = [
   { key: 'housekeeping', label: 'Housekeeping', icon: Users },
   { key: 'fall', label: 'Fall Protection', icon: TriangleAlert },
   { key: 'excavation', label: 'Excavation Safety', icon: AlertTriangle },
-  { key: 'crane', label: 'Crane & Lifting', icon: Crane },
+  { key: 'crane', label: 'Construction & Lifting', icon: Construction },
   { key: 'chemical', label: 'Chemical Handling', icon: Droplets },
   { key: 'emergency', label: 'Emergency Exits', icon: DoorOpen },
 ]
@@ -181,7 +181,7 @@ const SAMPLE_TOOLBOX_TALKS: ToolboxTalk[] = [
   { id: '2', no: 'TT-2024-002', topic: 'Electrical Safety Awareness', date: '2024-12-06', by: 'Ravi Verma', duration: '15 min', attendees: 28, status: 'Completed' },
   { id: '3', no: 'TT-2024-003', topic: 'Fall Prevention Systems', date: '2024-12-10', by: 'Anita Sharma', duration: '25 min', attendees: 42, status: 'Completed' },
   { id: '4', no: 'TT-2024-004', topic: 'Heat Stress Prevention', date: '2024-12-15', by: 'Ravi Verma', duration: '15 min', attendees: 30, status: 'Completed' },
-  { id: '5', no: 'TT-2024-005', topic: 'Crane & Lifting Operations', date: '2024-12-22', by: 'Anita Sharma', duration: '20 min', attendees: 0, status: 'Scheduled' },
+  { id: '5', no: 'TT-2024-005', topic: 'Construction & Lifting Operations', date: '2024-12-22', by: 'Anita Sharma', duration: '20 min', attendees: 0, status: 'Scheduled' },
 ]
 
 const SAMPLE_MEETINGS: SafetyMeeting[] = [
@@ -198,7 +198,7 @@ const SAMPLE_TRAINING_RECORDS: TrainingRecord[] = [
   { id: '4', employee: 'Ravi Verma', training: 'First Aid', date: '2023-11-05', trainer: 'Red Cross', certificate: 'CERT-FA-2023-105', validUntil: '2024-11-05', status: 'Expired' },
   { id: '5', employee: 'Anita Sharma', training: 'NEBOSH IGC', date: '2024-04-12', trainer: 'NEBOSH UK', certificate: 'CERT-NEB-2024-089', validUntil: '2027-04-12', status: 'Valid' },
   { id: '6', employee: 'Sunil Mehta', training: 'Working at Height', date: '2024-07-22', trainer: 'HeightSafe Solutions', certificate: 'CERT-WAH-2024-033', validUntil: '2025-07-22', status: 'Valid' },
-  { id: '7', employee: 'Deepak Joshi', training: 'Crane Signalling', date: '2023-08-18', trainer: 'CraneMaster India', certificate: 'CERT-CS-2023-077', validUntil: '2024-08-18', status: 'Expired' },
+  { id: '7', employee: 'Deepak Joshi', training: 'Construction Signalling', date: '2023-08-18', trainer: 'ConstructionMaster India', certificate: 'CERT-CS-2023-077', validUntil: '2024-08-18', status: 'Expired' },
   { id: '8', employee: 'Manoj Singh', training: 'Confined Space Entry', date: '2024-09-30', trainer: 'SafeEntry Training', certificate: 'CERT-CSE-2024-056', validUntil: '2025-09-30', status: 'Valid' },
 ]
 
@@ -211,7 +211,7 @@ const SAMPLE_PTWS: PTW[] = [
 ]
 
 const SAMPLE_RISK_ASSESSMENTS: RiskAssessment[] = [
-  { id: '1', no: 'RA-2024-001', activity: 'Tower Crane Operation', riskLevel: 'High', mitigation: 'Certified operator, daily checks, exclusion zone, wind speed monitoring', status: 'Active' },
+  { id: '1', no: 'RA-2024-001', activity: 'Tower Construction Operation', riskLevel: 'High', mitigation: 'Certified operator, daily checks, exclusion zone, wind speed monitoring', status: 'Active' },
   { id: '2', no: 'RA-2024-002', activity: 'Deep Excavation (>3m)', riskLevel: 'High', mitigation: 'Shoring, dewatering, daily inspections, edge protection', status: 'Active' },
   { id: '3', no: 'RA-2024-003', activity: 'Welding & Cutting', riskLevel: 'Medium', mitigation: 'Fire watch, extinguisher nearby, hot work permit, ventilation', status: 'Active' },
   { id: '4', no: 'RA-2024-004', activity: 'Scaffolding Erection', riskLevel: 'Medium', mitigation: 'Trained erectors, tagged system, weekly inspection, base plates', status: 'Under Review' },

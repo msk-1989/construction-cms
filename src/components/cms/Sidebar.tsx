@@ -6,20 +6,19 @@ import {
   LayoutDashboard, FolderKanban, ListTodo, Users, BarChart3, Bell, MessageSquare,
   Settings, ShieldCheck, Building2, ChevronLeft, LogOut, ChevronRight, X,
   Briefcase, HardHat, Globe, Shield,
-  // New icons for role-based menus
   UserCog, UserPlus, Clock, DollarSign, FileText, ShoppingCart, Truck,
   CreditCard, CheckSquare, AlertTriangle, FileCheck, ClipboardList,
   Warehouse, Package, PackageCheck, Box, FileSpreadsheet, Camera,
   FileQuestion, FileSearch, ClipboardCheck, Megaphone, ShieldAlert,
-  BookOpen, HardHat as HardHatIcon, PenTool, Wrench, CalendarDays,
+  BookOpen, PenTool, Wrench, CalendarDays,
   Clipboard, FileBarChart, FileDown, Timer, Receipt, FolderOpen,
   Eye, PenLine, Ruler, Compass, BadgeDollarSign, Handshake, Archive,
   ClipboardPaste, CheckCircle2, XCircle, AlertOctagon, Flame,
   BookMarked, GraduationCap, UsersRound, TestTubes, FlaskConical, Layers,
   WarehouseIcon, ArrowDownToLine, ArrowUpFromLine, BarChartBig, ListChecks,
-  Target, TrendingUp, PieChart, Briefcase as BriefcaseIcon, Menu as MenuIcon,
+  Target, TrendingUp, PieChart,
   FilePlus, FilePen, FileSignature, Scale, FileBadge, FolderCog,
-  BadgeInfo, Calendar, FileClock, FilePlus2, ScanSearch, SearchCheck
+  BadgeInfo, FileClock, FilePlus2, ScanSearch, SearchCheck
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -51,7 +50,7 @@ const iconMap: Record<string, React.ElementType> = {
   ClipboardPaste, CheckCircle2, XCircle, AlertOctagon, Flame,
   BookMarked, GraduationCap, UsersRound, TestTubes, FlaskConical, Layers,
   ArrowDownToLine, ArrowUpFromLine, BarChartBig, ListChecks,
-  Target, TrendingUp, PieChart, BriefcaseIcon, FilePlus, FilePen,
+  Target, TrendingUp, PieChart, Briefcase, FilePlus, FilePen,
   FileSignature, Scale, FileBadge, FolderCog, BadgeInfo, Calendar,
   FileClock, FilePlus2, ScanSearch, SearchCheck, ShieldCheck,
 }
