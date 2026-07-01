@@ -228,3 +228,24 @@ Stage Summary:
 - No more panel crashes
 - Notifications API no longer returns 400
 - LIVE at: https://my-project-kappa-dusky.vercel.app
+
+---
+Task ID: API-400-FIX
+Agent: Main Agent
+Task: Fix all 400/405 API errors reported on deployed Vercel app
+
+Work Log:
+- Diagnosed root cause: 5 API routes (materials, purchase-orders, quotations, grv, payments) required `projectId` as mandatory query param in GET, returning 400 when panels called without it
+- Fixed all 5 routes: made `projectId` optional — if not provided, returns all records instead of 400
+- Fixed ReportsView.tsx: was sending POST to `/api/dashboard` which only has GET handler (caused 405 on Vercel). Changed to GET.
+- Fixed Header.tsx: `markAllRead()` was calling POST `/api/notifications/read-all` which doesn't exist. Changed to PUT `/api/notifications` with `{ markAll: true, userId }`.
+- Browser-verified: Procurement, Store, Finance, Reports panels all load without any console API errors
+- Lint: 0 errors
+- Pushed to GitHub (triggers Vercel auto-deploy)
+
+Stage Summary:
+- All 400 errors resolved (materials, purchase-orders, quotations, grv, payments)
+- Dashboard 405 error resolved (POST → GET)
+- Notifications mark-all-read fixed (non-existent endpoint → existing PUT endpoint)
+- 7 files changed, 7 insertions, 12 deletions
+- Commit: b369407 pushed to main
