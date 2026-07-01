@@ -68,6 +68,10 @@ model User {
   assignedRecurringTasks RecurringTask[]     @relation("RecurringTaskAssignee")
   chatMessages           ChatMessage[]
   activityLogs          ActivityLog[]
+  exceptionalGrantsReceived  ExceptionalGrant[]  @relation("GrantRecipient")
+  exceptionalGrantsIssued    ExceptionalGrant[]  @relation("GrantIssuer")
+  exceptionalGrantsRevoked   ExceptionalGrant[]  @relation("GrantRevoker")
+  permissionOverrides        PermissionOverride[] @relation("PermissionOverrideUser")
 }
 
 model Project {
@@ -860,4 +864,57 @@ model ActivityLog {
 
   user    User     @relation(fields: [userId], references: [id])
   project Project? @relation(fields: [projectId], references: [id])
+}
+
+// ========================
+// Super Admin - Exceptional Grant System
+// ========================
+
+model ExceptionalGrant {
+  id                String    @id @default(cuid())
+  userId            String
+  grantedBy         String
+  permission        String
+  scopeType         String    @default("GLOBAL")
+  scopeId           String?
+  reason            String
+  grantType         String    @default("TEMPORARY")
+  startDate         DateTime  @default(now())
+  endDate           DateTime?
+  status            String    @default("ACTIVE")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  revokedAt         DateTime?
+  revokedBy         String?
+  revocationReason  String?
+
+  user          User     @relation("GrantRecipient", fields: [userId], references: [id])
+  grantedByUser User     @relation("GrantIssuer", fields: [grantedBy], references: [id])
+  revokedByUser User?    @relation("GrantRevoker", fields: [revokedBy], references: [id])
+}
+
+model PermissionOverride {
+  id        String    @id @default(cuid())
+  userId    String
+  resource  String
+  action    String
+  isAllowed Boolean   @default(true)
+  reason    String?
+  createdBy String
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
+
+  user User @relation("PermissionOverrideUser", fields: [userId], references: [id])
+}
+
+model GrantTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  permissions String[]
+  duration    Int?
+  isActive    Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
 }

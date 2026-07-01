@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, FolderKanban, ListTodo, Users, BarChart3, Bell, MessageSquare,
-  Settings, ShieldCheck, Building2, ChevronLeft, LogOut, ChevronRight, X
+  Settings, ShieldCheck, Building2, ChevronLeft, LogOut, ChevronRight, X,
+  Briefcase, HardHat, Globe, Shield
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -42,7 +43,7 @@ export function Sidebar() {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   const setCurrentView = useAppStore((s) => s.setCurrentView)
-  const { can } = usePermissions()
+  const { can, isAdmin, isSuperAdmin, role } = usePermissions()
 
   const [badgeCounts, setBadgeCounts] = useState<BadgeCounts>({})
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -76,17 +77,36 @@ export function Sidebar() {
     { view: 'tasks', label: 'Tasks', icon: ListTodo, permission: 'view:tasks', badge: badgeCounts.tasks },
     { view: 'team', label: 'Team', icon: Users, permission: 'view:team' },
     { view: 'reports', label: 'Reports', icon: BarChart3, permission: 'view:reports' },
+  ]
+
+  const siteItems: MenuItem[] = [
+    { view: 'site', label: 'Site Panel', icon: HardHat, permission: 'view:dashboard' },
+  ]
+
+  const corporateItems: MenuItem[] = [
+    { view: 'corporate', label: 'Corporate', icon: Briefcase, permission: 'view:reports' },
+  ]
+
+  const externalItems: MenuItem[] = [
+    { view: 'external', label: 'External', icon: Globe, permission: 'view:projects' },
+  ]
+
+  const adminItems: MenuItem[] = [
+    { view: 'admin', label: isSuperAdmin ? 'Super Admin' : 'Admin Panel', icon: isSuperAdmin ? Shield : ShieldCheck, permission: 'view:admin' },
+    { view: 'settings', label: 'Settings', icon: Settings, permission: 'view:settings' },
+  ]
+
+  const commItems: MenuItem[] = [
     { view: 'notifications', label: 'Notifications', icon: Bell, permission: 'view:notifications' },
     { view: 'chat', label: 'Chat', icon: MessageSquare, permission: 'view:chat' },
   ]
 
-  const adminItems: MenuItem[] = [
-    { view: 'admin', label: 'Admin Panel', icon: ShieldCheck, permission: 'view:admin' },
-    { view: 'settings', label: 'Settings', icon: Settings, permission: 'view:settings' },
-  ]
-
   const visibleItems = menuItems.filter((item) => can(item.permission as never))
+  const visibleSiteItems = siteItems.filter((item) => can(item.permission as never))
+  const visibleCorporateItems = corporateItems.filter((item) => can(item.permission as never))
+  const visibleExternalItems = externalItems.filter((item) => can(item.permission as never))
   const visibleAdminItems = adminItems.filter((item) => can(item.permission as never))
+  const visibleCommItems = commItems.filter((item) => can(item.permission as never))
 
   const handleNav = (view: ViewType) => {
     setCurrentView(view)
@@ -101,6 +121,61 @@ export function Sidebar() {
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : 'U'
+
+  const renderNavSection = (items: MenuItem[], collapsed: boolean) => (
+    <nav className="space-y-1 px-3">
+      {items.map((item) => {
+        const isActive = currentView === item.view
+        const btn = (
+          <button
+            key={item.view}
+            onClick={() => handleNav(item.view)}
+            className={cn(
+              'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative',
+              isActive
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/20'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              collapsed && 'justify-center px-2'
+            )}
+          >
+            <item.icon className={cn('h-5 w-5 shrink-0', isActive && 'text-white')} />
+            <AnimatePresence>
+              {!collapsed && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-hidden whitespace-nowrap"
+                >
+                  {item.label}
+                </motion.span>
+              )}
+            </AnimatePresence>
+            {item.badge && item.badge > 0 && !collapsed && (
+              <Badge className="ml-auto h-5 min-w-5 px-1.5 text-[10px] bg-white/90 text-amber-700 border-0 font-bold">
+                {item.badge > 99 ? '99+' : item.badge}
+              </Badge>
+            )}
+            {item.badge && item.badge > 0 && collapsed && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                {item.badge > 9 ? '9+' : item.badge}
+              </span>
+            )}
+          </button>
+        )
+        if (collapsed) {
+          return (
+            <Tooltip key={item.view}>
+              <TooltipTrigger asChild>{btn}</TooltipTrigger>
+              <TooltipContent side="right" className="font-medium">{item.label}</TooltipContent>
+            </Tooltip>
+          )
+        }
+        return btn
+      })}
+    </nav>
+  )
 
   const sidebarContent = (collapsed: boolean) => (
     <TooltipProvider delayDuration={0}>
@@ -130,109 +205,50 @@ export function Sidebar() {
 
         {/* Nav Items */}
         <ScrollArea className="flex-1 py-3">
-          <nav className="space-y-1 px-3">
-            {visibleItems.map((item) => {
-              const isActive = currentView === item.view
-              const btn = (
-                <button
-                  key={item.view}
-                  onClick={() => handleNav(item.view)}
-                  className={cn(
-                    'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative',
-                    isActive
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/20'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                    collapsed && 'justify-center px-2'
-                  )}
-                >
-                  <item.icon className={cn('h-5 w-5 shrink-0', isActive && 'text-white')} />
-                  <AnimatePresence>
-                    {!collapsed && (
-                      <motion.span
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }}
-                        transition={{ duration: 0.15 }}
-                        className="overflow-hidden whitespace-nowrap"
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                  {item.badge && item.badge > 0 && !collapsed && (
-                    <Badge className="ml-auto h-5 min-w-5 px-1.5 text-[10px] bg-white/90 text-amber-700 border-0 font-bold">
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </Badge>
-                  )}
-                  {item.badge && item.badge > 0 && collapsed && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                      {item.badge > 9 ? '9+' : item.badge}
-                    </span>
-                  )}
-                </button>
-              )
-              if (collapsed) {
-                return (
-                  <Tooltip key={item.view}>
-                    <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                    <TooltipContent side="right" className="font-medium">
-                      {item.label}
-                    </TooltipContent>
-                  </Tooltip>
-                )
-              }
-              return btn
-            })}
-          </nav>
+          {/* Main Navigation */}
+          {renderNavSection(visibleItems, collapsed)}
+
+          {/* Site Panel Section */}
+          {visibleSiteItems.length > 0 && (isAdmin || role === 'MEMBER') && (
+            <>
+              <Separator className="my-3 mx-3" />
+              {!collapsed && <p className="px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Site Operations</p>}
+              {renderNavSection(visibleSiteItems, collapsed)}
+            </>
+          )}
+
+          {/* Corporate Panel Section */}
+          {visibleCorporateItems.length > 0 && isAdmin && (
+            <>
+              <Separator className="my-3 mx-3" />
+              {!collapsed && <p className="px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Corporate</p>}
+              {renderNavSection(visibleCorporateItems, collapsed)}
+            </>
+          )}
+
+          {/* External Panel Section */}
+          {visibleExternalItems.length > 0 && !isAdmin && (
+            <>
+              <Separator className="my-3 mx-3" />
+              {!collapsed && <p className="px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">External</p>}
+              {renderNavSection(visibleExternalItems, collapsed)}
+            </>
+          )}
+
+          {/* Communication */}
+          {visibleCommItems.length > 0 && (
+            <>
+              <Separator className="my-3 mx-3" />
+              {renderNavSection(visibleCommItems, collapsed)}
+            </>
+          )}
 
           {/* Admin Section */}
           {visibleAdminItems.length > 0 && (
             <>
               <Separator className="my-3 mx-3" />
-              <nav className="space-y-1 px-3">
-                {visibleAdminItems.map((item) => {
-                  const isActive = currentView === item.view
-                  const btn = (
-                    <button
-                      key={item.view}
-                      onClick={() => handleNav(item.view)}
-                      className={cn(
-                        'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                        isActive
-                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/20'
-                          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                        collapsed && 'justify-center px-2'
-                      )}
-                    >
-                      <item.icon className={cn('h-5 w-5 shrink-0', isActive && 'text-white')} />
-                      <AnimatePresence>
-                        {!collapsed && (
-                          <motion.span
-                            initial={{ opacity: 0, width: 0 }}
-                            animate={{ opacity: 1, width: 'auto' }}
-                            exit={{ opacity: 0, width: 0 }}
-                            transition={{ duration: 0.15 }}
-                            className="overflow-hidden whitespace-nowrap"
-                          >
-                            {item.label}
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </button>
-                  )
-                  if (collapsed) {
-                    return (
-                      <Tooltip key={item.view}>
-                        <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                        <TooltipContent side="right" className="font-medium">
-                          {item.label}
-                        </TooltipContent>
-                      </Tooltip>
-                    )
-                  }
-                  return btn
-                })}
-              </nav>
+              {!collapsed && <p className="px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Administration</p>}
+              {renderNavSection(visibleAdminItems, collapsed)}
             </>
           )}
         </ScrollArea>

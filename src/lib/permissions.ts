@@ -93,6 +93,15 @@ export type Permission =
   | 'view:retainage'
   | 'approve:retainage'
   | 'view:activity-log'
+  // Exceptional Grants & System Settings
+  | 'view:grants'
+  | 'create:grants'
+  | 'revoke:grants'
+  | 'manage:grant-templates'
+  | 'manage:permission-overrides'
+  | 'emergency:override'
+  | 'view:system-settings'
+  | 'manage:system-settings'
 
 export const ALL_PERMISSIONS: Permission[] = [
   'view:dashboard',
@@ -170,9 +179,18 @@ export const ALL_PERMISSIONS: Permission[] = [
   'view:retainage',
   'approve:retainage',
   'view:activity-log',
+  'view:grants',
+  'create:grants',
+  'revoke:grants',
+  'manage:grant-templates',
+  'manage:permission-overrides',
+  'emergency:override',
+  'view:system-settings',
+  'manage:system-settings',
 ]
 
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
+  SUPER_ADMIN: ALL_PERMISSIONS,
   ADMIN: ALL_PERMISSIONS,
   MANAGER: [
     // Dashboard
@@ -321,6 +339,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 
 export function getRoleLabel(role: string): string {
   const labels: Record<string, string> = {
+    SUPER_ADMIN: 'Super Admin',
     ADMIN: 'Administrator',
     MANAGER: 'Project Manager',
     MEMBER: 'Team Member',
@@ -330,6 +349,7 @@ export function getRoleLabel(role: string): string {
 
 export function getRoleBadgeClass(role: string): string {
   const classes: Record<string, string> = {
+    SUPER_ADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800',
     ADMIN: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800',
     MANAGER: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800',
     MEMBER: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',

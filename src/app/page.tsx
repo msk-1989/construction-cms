@@ -15,6 +15,9 @@ import { ReportsView } from '@/components/cms/ReportsView'
 import { SettingsView } from '@/components/cms/SettingsView'
 import { NotificationsView } from '@/components/cms/NotificationsView'
 import { AdminDashboardView } from '@/components/cms/AdminDashboardView'
+import { CorporatePanel } from '@/components/cms/CorporatePanel'
+import { SitePanel } from '@/components/cms/SitePanel'
+import { ExternalPanel } from '@/components/cms/ExternalPanel'
 import { ChatView } from '@/components/cms/ChatView'
 import { AIChatPanel } from '@/components/cms/AIChatPanel'
 import { Toaster } from '@/components/ui/sonner'
@@ -32,8 +35,11 @@ const VIEW_TITLES: Record<ViewType, string> = {
   reports: 'Reports',
   settings: 'Settings',
   notifications: 'Notifications',
-  admin: 'Admin Panel',
+  admin: 'Super Admin',
   chat: 'Chat',
+  corporate: 'Corporate Panel',
+  site: 'Site Panel',
+  external: 'External Panel',
 }
 
 const pageVariants = {
@@ -93,6 +99,9 @@ export default function Home() {
       case 'notifications': return <NotificationsView />
       case 'admin': return <AdminDashboardView />
       case 'chat': return <ChatView />
+      case 'corporate': return <CorporatePanel />
+      case 'site': return <SitePanel />
+      case 'external': return <ExternalPanel />
       default: return <DashboardView />
     }
   }

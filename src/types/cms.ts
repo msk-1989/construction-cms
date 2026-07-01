@@ -13,6 +13,9 @@ export type ViewType =
   | 'notifications'
   | 'admin'
   | 'chat'
+  | 'corporate'
+  | 'site'
+  | 'external'
 
 // ========================
 // Core Types
@@ -829,6 +832,69 @@ export interface ActivityLog {
   createdAt: string
   user?: User
   project?: Project
+}
+
+// ========================
+// Exceptional Grant System
+// ========================
+
+export type GrantType = 'TEMPORARY' | 'PERMANENT' | 'EMERGENCY'
+export type GrantStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED'
+export type GrantScopeType = 'GLOBAL' | 'PROJECT' | 'SITE' | 'COMPANY'
+
+export interface ExceptionalGrant {
+  id: string
+  userId: string
+  grantedBy: string
+  permission: string
+  scopeType: GrantScopeType
+  scopeId?: string | null
+  reason: string
+  grantType: GrantType
+  startDate: string
+  endDate?: string | null
+  status: GrantStatus
+  createdAt: string
+  updatedAt: string
+  revokedAt?: string | null
+  revokedBy?: string | null
+  revocationReason?: string | null
+  user?: { id: string; name: string; email: string; role: string }
+  grantedByUser?: { id: string; name: string; email: string }
+  revokedByUser?: { id: string; name: string } | null
+}
+
+export interface PermissionOverride {
+  id: string
+  userId: string
+  resource: string
+  action: string
+  isAllowed: boolean
+  reason?: string | null
+  createdBy: string
+  createdAt: string
+  expiresAt?: string | null
+  isActive: boolean
+  user?: { id: string; name: string; email: string; role: string }
+}
+
+export interface GrantTemplate {
+  id: string
+  name: string
+  description?: string | null
+  permissions: string[]
+  duration?: number | null
+  isActive: boolean
+  createdBy: string
+  createdAt: string
+}
+
+export interface GrantsStats {
+  active: number
+  expiringSoon: number
+  expired: number
+  total: number
+  usersAffected: number
 }
 
 // ========================
