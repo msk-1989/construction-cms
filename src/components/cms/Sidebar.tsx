@@ -571,7 +571,7 @@ const LABEL_TAB_MAP: Record<string, string | undefined> = {
   // Site
   'Site Diary': 'diary',
   'Daily Planning': 'dashboard',
-  'Site Reports': 'diary',
+  'Site Reports': 'site-reports',
   'Labour Management': 'labour',
   'RFI': 'rfi',
   'RFI Response': 'rfi',
@@ -629,19 +629,24 @@ function SubMenu({
   item,
   collapsed,
   currentView,
+  lastNavTab,
   onNav,
 }: {
   item: SidebarMenuItem
   collapsed: boolean
   currentView: ViewType
+  lastNavTab: string | null
   onNav: (view: ViewType, tab?: string) => void
 }) {
   const [open, setOpen] = useState(false)
   const Icon = iconMap[item.icon] || LayoutDashboard
   const hasChildren = item.children && item.children.length > 0
-  const isActive = !hasChildren && currentView === item.view
-  const isChildActive = hasChildren && item.children!.some((c) => c.view === currentView)
-  const tab = item.tab || LABEL_TAB_MAP[item.label]
+  const itemTab = item.tab || LABEL_TAB_MAP[item.label]
+  const isActive = !hasChildren && currentView === item.view && (!itemTab || lastNavTab === itemTab)
+  const isChildActive = hasChildren && item.children!.some((c) => {
+    const cTab = c.tab || LABEL_TAB_MAP[c.label]
+    return c.view === currentView && (!cTab || lastNavTab === cTab)
+  })
 
   const btn = (
     <button
@@ -649,7 +654,7 @@ function SubMenu({
         if (hasChildren) {
           setOpen(!open)
         } else {
-          onNav(item.view, tab)
+          onNav(item.view, itemTab)
         }
       }}
       className={cn(
@@ -710,8 +715,8 @@ function SubMenu({
             <div className="ml-4 pl-4 border-l border-border/50 space-y-0.5 mt-1 mb-1">
               {item.children!.map((child) => {
                 const ChildIcon = iconMap[child.icon || 'ListTodo'] || ListTodo
-                const childActive = currentView === child.view
                 const childTab = child.tab || LABEL_TAB_MAP[child.label]
+                const childActive = currentView === child.view && (!childTab || lastNavTab === childTab)
                 const childBtn = (
                   <button
                     key={`${item.view}-${child.view}-${child.label}`}
@@ -748,6 +753,8 @@ export function Sidebar() {
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   const setCurrentView = useAppStore((s) => s.setCurrentView)
   const setPanelTab = useAppStore((s) => s.setPanelTab)
+  const lastNavTab = useAppStore((s) => s.lastNavTab)
+  const setLastNavTab = useAppStore((s) => s.setLastNavTab)
   const { role } = usePermissions()
 
   const [badgeCounts, setBadgeCounts] = useState<BadgeCounts>({})
@@ -799,6 +806,7 @@ export function Sidebar() {
   const handleNav = (view: ViewType, tab?: string) => {
     setCurrentView(view)
     setPanelTab(tab || null)
+    setLastNavTab(tab || null)
     setMobileOpen(false)
   }
 
@@ -830,14 +838,15 @@ export function Sidebar() {
                   item={item}
                   collapsed={collapsed}
                   currentView={currentView}
+                  lastNavTab={lastNavTab}
                   onNav={handleNav}
                 />
               )
             }
 
             const Icon = iconMap[item.icon] || LayoutDashboard
-            const isActive = currentView === item.view
             const itemTab = item.tab || LABEL_TAB_MAP[item.label]
+            const isActive = currentView === item.view && (!itemTab || lastNavTab === itemTab)
 
             const btn = (
               <button
