@@ -274,3 +274,29 @@ Stage Summary:
 - Items without tabs (Dashboard, Projects, etc.) work as before
 - Items with tabs (Site Diary, RFI, etc.) require both view AND tab match
 - Commit: 2ce95a0 pushed to main
+
+---
+Task ID: SCROLLBAR-FIX
+Agent: Main Agent
+Task: Add visible scrollbars to sidebar and dialog/popup pages
+
+Work Log:
+- Replaced Radix ScrollArea in sidebar with native `overflow-y-auto` + `min-h-0` (Radix had scroll sync issues)
+- Added custom scrollbar CSS in globals.css:
+  - Sidebar: 5px thin scrollbar, amber-tinted thumb, transparent track, hover darkens
+  - Dialog: 6px scrollbar, subtle thumb, min-height 40px for thumb visibility
+  - Dark mode: lighter thumb colors for visibility on dark backgrounds
+- Updated Dialog component: wrapped children in scrollable div (`dialog-scroll overflow-y-auto flex-1 min-h-0`)
+- Dialog: max-h-[85vh] prevents dialog from exceeding viewport
+- Dialog: close button has z-10 to stay above scrolling content
+- Removed unused ScrollArea import from Sidebar.tsx
+- Browser-tested: sidebar scrolls from Dashboard to bottom items (Notifications, Chat, Settings)
+- Browser-tested: dialog inner wrapper shows correct overflow metrics
+- Lint: 0 errors
+- Pushed to Vercel
+
+Stage Summary:
+- Sidebar: visible thin scrollbar when menu items overflow viewport
+- Dialogs: scrollable when content exceeds 85vh, with styled scrollbar
+- Both light and dark themes supported
+- Commit: 113abe9 pushed to main
