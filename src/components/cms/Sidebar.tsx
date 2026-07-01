@@ -51,7 +51,7 @@ const iconMap: Record<string, React.ElementType> = {
   BookMarked, GraduationCap, UsersRound, TestTubes, FlaskConical, Layers,
   ArrowDownToLine, ArrowUpFromLine, BarChartBig, ListChecks,
   Target, TrendingUp, PieChart, Briefcase, FilePlus, FilePen,
-  FileSignature, Scale, FileBadge, FolderCog, BadgeInfo, Calendar,
+  FileSignature, Scale, FileBadge, FolderCog, BadgeInfo, CalendarDays,
   FileClock, FilePlus2, ScanSearch, SearchCheck, ShieldCheck,
 }
 
